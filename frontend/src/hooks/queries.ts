@@ -5,14 +5,17 @@ import type { PinRequest } from "../api/endpoints";
 
 const STATIC = { staleTime: 10 * 60_000, refetchOnWindowFocus: false } as const;
 
-export const useMetadata = () => useQuery({ queryKey: ["metadata"], queryFn: queryApi.metadata, ...STATIC });
+export const useMetadata = () =>
+  useQuery({ queryKey: ["metadata"], queryFn: queryApi.metadata, ...STATIC });
 
 export const useSuggestions = () =>
   useQuery({ queryKey: ["suggestions"], queryFn: queryApi.suggestions, ...STATIC });
 
-export const useOverview = () => useQuery({ queryKey: ["overview"], queryFn: queryApi.overview, ...STATIC });
+export const useOverview = () =>
+  useQuery({ queryKey: ["overview"], queryFn: queryApi.overview, ...STATIC });
 
-export const useDashboards = () => useQuery({ queryKey: ["dashboards"], queryFn: dashboardApi.list });
+export const useDashboards = () =>
+  useQuery({ queryKey: ["dashboards"], queryFn: dashboardApi.list });
 
 export const useDashboard = (id: number) =>
   useQuery({ queryKey: ["dashboard", id], queryFn: () => dashboardApi.get(id), enabled: id > 0 });
@@ -45,7 +48,10 @@ export function usePinWidget() {
 export function useIncompleteMonths(): Set<string> {
   const meta = useMetadata();
   return useMemo(
-    () => new Set((meta.data?.coverage?.months ?? []).filter((m) => m.status !== "full").map((m) => m.month)),
+    () =>
+      new Set(
+        (meta.data?.coverage?.months ?? []).filter((m) => m.status !== "full").map((m) => m.month),
+      ),
     [meta.data],
   );
 }

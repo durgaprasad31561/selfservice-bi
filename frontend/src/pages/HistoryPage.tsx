@@ -40,19 +40,34 @@ export function HistoryPage() {
       <PageHeader title="History" subtitle="Every question you asked and what happened to it." />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Filter by status">
         {FILTERS.map((f) => (
-          <button key={f.value} type="button" aria-pressed={status === f.value}
-                  onClick={() => { setStatus(f.value); setOffset(0); }}
-                  className={`rounded-full border px-3 py-1 text-sm ${status === f.value ? "border-accent bg-accent-soft text-ink" : "border-line text-ink-2 hover:text-ink"}`}>
+          <button
+            key={f.value}
+            type="button"
+            aria-pressed={status === f.value}
+            onClick={() => {
+              setStatus(f.value);
+              setOffset(0);
+            }}
+            className={`rounded-full border px-3 py-1 text-sm ${status === f.value ? "border-accent bg-accent-soft text-ink" : "border-line text-ink-2 hover:text-ink"}`}
+          >
             {f.label}
           </button>
         ))}
       </div>
-      {error && <div className="mb-3"><ErrorNote message={error} /></div>}
+      {error && (
+        <div className="mb-3">
+          <ErrorNote message={error} />
+        </div>
+      )}
       {history.isLoading && <Spinner />}
       {history.error && <ErrorNote message={errorMessage(history.error)} />}
       {history.data && history.data.items.length === 0 && (
         <EmptyState title="No questions yet">
-          Go to the <Link to="/ask" className="text-accent hover:underline">Ask page</Link> to get started.
+          Go to the{" "}
+          <Link to="/ask" className="text-accent hover:underline">
+            Ask page
+          </Link>{" "}
+          to get started.
         </EmptyState>
       )}
       {history.data && history.data.items.length > 0 && (
@@ -64,7 +79,9 @@ export function HistoryPage() {
                 <th className="px-4 py-2 font-medium">Outcome</th>
                 <th className="px-4 py-2 text-right font-medium">Time</th>
                 <th className="px-4 py-2 font-medium">Asked</th>
-                <th className="px-4 py-2"><span className="sr-only">Actions</span></th>
+                <th className="px-4 py-2">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -72,7 +89,9 @@ export function HistoryPage() {
                 <tr key={h.id} className="border-t border-line align-top">
                   <td className="max-w-md px-4 py-2.5">
                     <div className="font-medium">{h.question}</div>
-                    <div className="mt-0.5 line-clamp-2 text-xs text-ink-2">{h.status === "refused" ? h.reason : h.answer_text}</div>
+                    <div className="mt-0.5 line-clamp-2 text-xs text-ink-2">
+                      {h.status === "refused" ? h.reason : h.answer_text}
+                    </div>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5">
                     <StatusBadge status={h.status} />
@@ -80,11 +99,25 @@ export function HistoryPage() {
                       <div className="mt-1 text-xs text-muted">{h.confidence} confidence</div>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-ink-2">{(h.execution_ms / 1000).toFixed(1)} s</td>
-                  <td className="whitespace-nowrap px-4 py-2.5 text-ink-2">{formatDateTime(h.created_at)}</td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-ink-2">
+                    {(h.execution_ms / 1000).toFixed(1)} s
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-2.5 text-ink-2">
+                    {formatDateTime(h.created_at)}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-right">
-                    <Link to={`/ask?q=${encodeURIComponent(h.question)}`} className="btn-ghost px-2 py-1 text-xs">Ask again</Link>
-                    <button type="button" className="btn-ghost px-2 py-1" aria-label="Delete entry" onClick={() => void remove(h.id)}>
+                    <Link
+                      to={`/ask?q=${encodeURIComponent(h.question)}`}
+                      className="btn-ghost px-2 py-1 text-xs"
+                    >
+                      Ask again
+                    </Link>
+                    <button
+                      type="button"
+                      className="btn-ghost px-2 py-1"
+                      aria-label="Delete entry"
+                      onClick={() => void remove(h.id)}
+                    >
                       <IconTrash size={15} />
                     </button>
                   </td>
@@ -93,10 +126,26 @@ export function HistoryPage() {
             </tbody>
           </table>
           <div className="flex items-center justify-between border-t border-line px-4 py-2 text-sm text-ink-2">
-            <span>{offset + 1}–{Math.min(offset + PAGE, total)} of {total}</span>
+            <span>
+              {offset + 1}–{Math.min(offset + PAGE, total)} of {total}
+            </span>
             <div className="flex gap-2">
-              <button type="button" className="btn-outline px-2.5 py-1" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - PAGE))}>Previous</button>
-              <button type="button" className="btn-outline px-2.5 py-1" disabled={offset + PAGE >= total} onClick={() => setOffset(offset + PAGE)}>Next</button>
+              <button
+                type="button"
+                className="btn-outline px-2.5 py-1"
+                disabled={offset === 0}
+                onClick={() => setOffset(Math.max(0, offset - PAGE))}
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                className="btn-outline px-2.5 py-1"
+                disabled={offset + PAGE >= total}
+                onClick={() => setOffset(offset + PAGE)}
+              >
+                Next
+              </button>
             </div>
           </div>
         </div>

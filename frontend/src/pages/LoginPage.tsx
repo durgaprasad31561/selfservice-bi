@@ -40,7 +40,9 @@ export function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="absolute right-4 top-4"><ThemeToggle /></div>
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-accent-ink">
@@ -53,16 +55,38 @@ export function LoginPage() {
         </div>
         <form onSubmit={submit} className="card space-y-4 p-6">
           <div>
-            <label className="label" htmlFor="email">Email</label>
-            <input id="email" type="email" autoComplete="username" className="input" required
-                   value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label className="label" htmlFor="email">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="username"
+              className="input"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div>
-            <label className="label" htmlFor="password">Password</label>
-            <input id="password" type="password" autoComplete="current-password" className="input" required
-                   value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label className="label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              className="input"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
-          {error && <p className="text-sm text-critical" role="alert">{error}</p>}
+          {error && (
+            <p className="text-sm text-critical" role="alert">
+              {error}
+            </p>
+          )}
           <button type="submit" className="btn-primary w-full" disabled={busy}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
@@ -71,13 +95,22 @@ export function LoginPage() {
           <p className="label">Demo accounts</p>
           <div className="flex flex-wrap gap-2">
             {DEMO.map((d) => (
-              <button key={d.email} type="button" className="btn-outline px-2.5 py-1.5 text-xs"
-                      onClick={() => { setEmail(d.email); setPassword(d.password); }}>
+              <button
+                key={d.email}
+                type="button"
+                className="btn-outline px-2.5 py-1.5 text-xs"
+                onClick={() => {
+                  setEmail(d.email);
+                  setPassword(d.password);
+                }}
+              >
                 {d.role}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-muted">Fills the form with a demo user (configured in the backend .env).</p>
+          <p className="mt-2 text-xs text-muted">
+            Fills the form with a demo user (configured in the backend .env).
+          </p>
         </div>
       </div>
     </div>

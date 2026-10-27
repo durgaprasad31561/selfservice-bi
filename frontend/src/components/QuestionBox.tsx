@@ -42,7 +42,11 @@ export function buildVocabulary(meta: Metadata | undefined): Term[] {
 }
 
 /** Terms that complete the last 1-3 words being typed. */
-export function completions(text: string, vocab: Term[], limit = 8): { term: Term; replaceFrom: number }[] {
+export function completions(
+  text: string,
+  vocab: Term[],
+  limit = 8,
+): { term: Term; replaceFrom: number }[] {
   if (!text.trim() || /\s$/.test(text)) return [];
   const words = [...text.matchAll(/\S+/g)];
   for (let n = Math.min(3, words.length); n >= 1; n--) {
@@ -51,7 +55,9 @@ export function completions(text: string, vocab: Term[], limit = 8): { term: Ter
     if (fragment.length < 2) continue;
     const hits = vocab.filter((t) => t.norm.startsWith(fragment) && t.norm !== fragment);
     if (hits.length) {
-      hits.sort((a, b) => (a.kind === b.kind ? a.norm.length - b.norm.length : a.kind === "Measure" ? -1 : 1));
+      hits.sort((a, b) =>
+        a.kind === b.kind ? a.norm.length - b.norm.length : a.kind === "Measure" ? -1 : 1,
+      );
       return hits.slice(0, limit).map((term) => ({ term, replaceFrom: start }));
     }
   }
@@ -120,7 +126,9 @@ export function QuestionBox({ metadata, disabled, onSubmit, value, onChange }: P
 
   return (
     <div className="relative">
-      <label htmlFor="question" className="sr-only">Ask a question about the data</label>
+      <label htmlFor="question" className="sr-only">
+        Ask a question about the data
+      </label>
       <div className="card flex items-end gap-2 p-2 shadow-sm focus-within:border-accent">
         <textarea
           id="question"
@@ -143,11 +151,18 @@ export function QuestionBox({ metadata, disabled, onSubmit, value, onChange }: P
           aria-autocomplete="list"
           className="min-h-[3.25rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-base text-ink placeholder:text-muted focus:outline-none"
         />
-        <button type="button" className="btn-primary h-10" onClick={submit} disabled={disabled || !value.trim()}>
+        <button
+          type="button"
+          className="btn-primary h-10"
+          onClick={submit}
+          disabled={disabled || !value.trim()}
+        >
           Ask <IconSend size={16} />
         </button>
       </div>
-      <p className="mt-1.5 px-1 text-xs text-muted">Enter to ask · Shift+Enter for a new line · Tab to complete</p>
+      <p className="mt-1.5 px-1 text-xs text-muted">
+        Enter to ask · Shift+Enter for a new line · Tab to complete
+      </p>
       {items.length > 0 && (
         <ul
           id="question-suggestions"

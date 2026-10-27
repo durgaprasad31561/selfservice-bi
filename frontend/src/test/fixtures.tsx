@@ -26,12 +26,32 @@ export function makeResponse(overrides: Partial<QueryResponse> = {}): QueryRespo
     sql: "SELECT SUM(order_revenue) AS total_sales FROM analytics.fact_orders LIMIT 1000",
     data: [{ total_sales: 7142672.43 }],
     columns: [
-      { name: "total_sales", label: "Total Sales", role: "measure", format: "currency", dimension_type: null, grain: null },
+      {
+        name: "total_sales",
+        label: "Total Sales",
+        role: "measure",
+        format: "currency",
+        dimension_type: null,
+        grain: null,
+      },
     ],
-    chart: { type: "kpi", title: "Total Sales", x: null, y: ["total_sales"], series: null, reason: "single value" },
+    chart: {
+      type: "kpi",
+      title: "Total Sales",
+      x: null,
+      y: ["total_sales"],
+      series: null,
+      reason: "single value",
+    },
     explanation: {
       mode: "semantic",
-      definitions: [{ name: "total_sales", label: "Total Sales", definition: "Sum of payments, excluding canceled orders." }],
+      definitions: [
+        {
+          name: "total_sales",
+          label: "Total Sales",
+          definition: "Sum of payments, excluding canceled orders.",
+        },
+      ],
       business_rules: ["Total Sales: Excludes canceled and unavailable orders."],
       filters: [],
       time_range: "Order date from 2017-01-01 to 2017-12-31",

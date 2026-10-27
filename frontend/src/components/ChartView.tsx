@@ -74,8 +74,13 @@ function ChartTooltip({
       {label !== undefined && <div className="mb-1 text-ink-2">{String(label)}</div>}
       {payload.map((p) => (
         <div key={String(p.dataKey)} className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: p.color ?? p.payload?.fill }} />
-          <span className="font-semibold tabular-nums text-ink">{format(p.value, String(p.dataKey))}</span>
+          <span
+            className="h-2.5 w-2.5 rounded-sm"
+            style={{ background: p.color ?? p.payload?.fill }}
+          />
+          <span className="font-semibold tabular-nums text-ink">
+            {format(p.value, String(p.dataKey))}
+          </span>
           <span className="text-ink-2">{String(p.name ?? "")}</span>
         </div>
       ))}
@@ -95,12 +100,19 @@ function Kpis({ columns, rows, y }: { columns: ColumnInfo[]; rows: Row[]; y: str
             {m.label}
             {dim ? ` · ${labelOf(row[dim.name], dim)}` : ""}
           </div>
-          <div className="mt-1 text-3xl font-semibold tabular-nums tracking-tight" title={formatValue(row[m.name], m.format)}>
+          <div
+            className="mt-1 text-3xl font-semibold tabular-nums tracking-tight"
+            title={formatValue(row[m.name], m.format)}
+          >
             {formatValue(row[m.name], m.format, { compact: true })}
           </div>
-          {m.format === "currency" && typeof row[m.name] === "number" && Math.abs(row[m.name] as number) >= 1e4 && (
-            <div className="mt-0.5 text-xs text-muted tabular-nums">{formatValue(row[m.name], m.format)}</div>
-          )}
+          {m.format === "currency" &&
+            typeof row[m.name] === "number" &&
+            Math.abs(row[m.name] as number) >= 1e4 && (
+              <div className="mt-0.5 text-xs text-muted tabular-nums">
+                {formatValue(row[m.name], m.format)}
+              </div>
+            )}
         </div>
       ))}
     </div>
@@ -112,7 +124,11 @@ function Legend({ items }: { items: { label: string; color: string; extra?: stri
     <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
       {items.map((i) => (
         <li key={i.label} className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ background: i.color }} aria-hidden="true" />
+          <span
+            className="h-2.5 w-2.5 rounded-sm"
+            style={{ background: i.color }}
+            aria-hidden="true"
+          />
           <span>{i.label}</span>
           {i.extra && <span className="tabular-nums text-muted">{i.extra}</span>}
         </li>
@@ -121,8 +137,18 @@ function Legend({ items }: { items: { label: string; color: string; extra?: stri
   );
 }
 
-function SingleLine({ data, xKey, measure, height, incomplete }: {
-  data: Row[]; xKey: string; measure: ColumnInfo; height: number; incomplete: boolean[];
+function SingleLine({
+  data,
+  xKey,
+  measure,
+  height,
+  incomplete,
+}: {
+  data: Row[];
+  xKey: string;
+  measure: ColumnInfo;
+  height: number;
+  incomplete: boolean[];
 }) {
   // Incomplete periods (little or no data) are drawn dashed with hollow markers so a
   // collection gap never reads as a real drop.
@@ -130,7 +156,12 @@ function SingleLine({ data, xKey, measure, height, incomplete }: {
   const plotted = data.map((d, i) => {
     const v = d[measure.name];
     const near = incomplete[i] || incomplete[i - 1] || incomplete[i + 1];
-    return { ...d, __solid: incomplete[i] ? null : v, __dash: near ? v : null, __inc: incomplete[i] };
+    return {
+      ...d,
+      __solid: incomplete[i] ? null : v,
+      __dash: near ? v : null,
+      __inc: incomplete[i],
+    };
   });
   return (
     <div>
@@ -138,8 +169,13 @@ function SingleLine({ data, xKey, measure, height, incomplete }: {
         <LineChart data={plotted} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
           <CartesianGrid vertical={false} stroke="var(--grid)" />
           <XAxis dataKey={xKey} {...AXIS} tickLine={false} minTickGap={24} />
-          <YAxis {...AXIS} tickLine={false} axisLine={false} width={72}
-                 tickFormatter={(v) => formatTick(v, measure.format)} />
+          <YAxis
+            {...AXIS}
+            tickLine={false}
+            axisLine={false}
+            width={72}
+            tickFormatter={(v) => formatTick(v, measure.format)}
+          />
           <Tooltip
             cursor={{ stroke: "var(--axis)", strokeWidth: 1 }}
             content={({ active, payload, label }) => {
@@ -155,33 +191,68 @@ function SingleLine({ data, xKey, measure, height, incomplete }: {
                     </span>
                     <span className="text-ink-2">{measure.label}</span>
                   </div>
-                  {row.__inc && <div className="mt-1 text-warn-ink">Incomplete month: little or no data</div>}
+                  {row.__inc && (
+                    <div className="mt-1 text-warn-ink">Incomplete month: little or no data</div>
+                  )}
                 </div>
               );
             }}
           />
-          <Line type="monotone" dataKey="__solid" name={measure.label} stroke={SERIES[0]} strokeWidth={2}
-                connectNulls={false}
-                dot={data.length <= 24 ? { r: 3, strokeWidth: 0, fill: SERIES[0] } : false}
-                activeDot={{ r: 5, stroke: "var(--surface-1)", strokeWidth: 2 }} isAnimationActive={false} />
+          <Line
+            type="monotone"
+            dataKey="__solid"
+            name={measure.label}
+            stroke={SERIES[0]}
+            strokeWidth={2}
+            connectNulls={false}
+            dot={data.length <= 24 ? { r: 3, strokeWidth: 0, fill: SERIES[0] } : false}
+            activeDot={{ r: 5, stroke: "var(--surface-1)", strokeWidth: 2 }}
+            isAnimationActive={false}
+          />
           {anyIncomplete && (
-            <Line type="monotone" dataKey="__dash" name={`${measure.label} (incomplete)`} stroke={SERIES[0]}
-                  strokeWidth={2} strokeDasharray="4 4" strokeOpacity={0.6} connectNulls={false}
-                  isAnimationActive={false} activeDot={false} legendType="none"
-                  dot={(props: { cx?: number; cy?: number; index?: number }) =>
-                    props.index !== undefined && incomplete[props.index] && props.cx && props.cy ? (
-                      <circle key={props.index} cx={props.cx} cy={props.cy} r={4} fill="var(--surface-1)"
-                              stroke={SERIES[0]} strokeWidth={1.5} />
-                    ) : (
-                      <g key={props.index} />
-                    )} />
+            <Line
+              type="monotone"
+              dataKey="__dash"
+              name={`${measure.label} (incomplete)`}
+              stroke={SERIES[0]}
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              strokeOpacity={0.6}
+              connectNulls={false}
+              isAnimationActive={false}
+              activeDot={false}
+              legendType="none"
+              dot={(props: { cx?: number; cy?: number; index?: number }) =>
+                props.index !== undefined && incomplete[props.index] && props.cx && props.cy ? (
+                  <circle
+                    key={props.index}
+                    cx={props.cx}
+                    cy={props.cy}
+                    r={4}
+                    fill="var(--surface-1)"
+                    stroke={SERIES[0]}
+                    strokeWidth={1.5}
+                  />
+                ) : (
+                  <g key={props.index} />
+                )
+              }
+            />
           )}
         </LineChart>
       </ResponsiveContainer>
       {anyIncomplete && (
         <p className="mt-1 flex items-center gap-2 text-xs text-ink-2">
           <svg width="24" height="8" aria-hidden="true">
-            <line x1="0" y1="4" x2="24" y2="4" stroke="var(--series-1)" strokeWidth="2" strokeDasharray="4 4" />
+            <line
+              x1="0"
+              y1="4"
+              x2="24"
+              y2="4"
+              stroke="var(--series-1)"
+              strokeWidth="2"
+              strokeDasharray="4 4"
+            />
           </svg>
           Dashed: incomplete months (data collection starting or stopping), not real drops
         </p>
@@ -190,26 +261,65 @@ function SingleLine({ data, xKey, measure, height, incomplete }: {
   );
 }
 
-function SingleBar({ data, xKey, measure, height, compact }: {
-  data: Row[]; xKey: string; measure: ColumnInfo; height: number; compact?: boolean;
+function SingleBar({
+  data,
+  xKey,
+  measure,
+  height,
+  compact,
+}: {
+  data: Row[];
+  xKey: string;
+  measure: ColumnInfo;
+  height: number;
+  compact?: boolean;
 }) {
   const barHeight = Math.max(height, data.length * 30 + 24);
   return (
     <ResponsiveContainer width="100%" height={compact ? height : barHeight}>
-      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 64, bottom: 4, left: 4 }} barCategoryGap={4}>
+      <BarChart
+        data={data}
+        layout="vertical"
+        margin={{ top: 4, right: 64, bottom: 4, left: 4 }}
+        barCategoryGap={4}
+      >
         <CartesianGrid horizontal={false} stroke="var(--grid)" />
-        <XAxis type="number" {...AXIS} tickLine={false} axisLine={false}
-               tickFormatter={(v) => formatTick(v, measure.format)} />
-        <YAxis type="category" dataKey={xKey} {...AXIS} tickLine={false} width={150} interval={0}
-               tickFormatter={(v: string) => (v.length > 22 ? `${v.slice(0, 21)}…` : v)} />
-        <Tooltip cursor={{ fill: "var(--surface-2)" }}
-                 content={(p) => <ChartTooltip {...p} format={(v) => formatValue(v, measure.format)} />} />
-        <Bar dataKey={measure.name} name={measure.label} fill={SERIES[0]} radius={[0, 4, 4, 0]}
-             isAnimationActive={false} maxBarSize={26}>
+        <XAxis
+          type="number"
+          {...AXIS}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(v) => formatTick(v, measure.format)}
+        />
+        <YAxis
+          type="category"
+          dataKey={xKey}
+          {...AXIS}
+          tickLine={false}
+          width={150}
+          interval={0}
+          tickFormatter={(v: string) => (v.length > 22 ? `${v.slice(0, 21)}…` : v)}
+        />
+        <Tooltip
+          cursor={{ fill: "var(--surface-2)" }}
+          content={(p) => <ChartTooltip {...p} format={(v) => formatValue(v, measure.format)} />}
+        />
+        <Bar
+          dataKey={measure.name}
+          name={measure.label}
+          fill={SERIES[0]}
+          radius={[0, 4, 4, 0]}
+          isAnimationActive={false}
+          maxBarSize={26}
+        >
           {data.length <= 12 && !compact && (
-            <LabelList dataKey={measure.name} position="right" className="tabular-nums"
-                       style={{ fill: "var(--text-secondary)", fontSize: 12 }}
-                       formatter={(v: unknown) => formatValue(v, measure.format, { compact: true })} />
+            <LabelList
+              dataKey={measure.name}
+              position="right"
+              className="tabular-nums"
+              style={{ fill: "var(--text-secondary)", fontSize: 12 }}
+              formatter={(v: unknown) => formatValue(v, measure.format, { compact: true })}
+            />
           )}
         </Bar>
       </BarChart>
@@ -218,7 +328,15 @@ function SingleBar({ data, xKey, measure, height, compact }: {
 }
 
 export function ChartView({
-  type, columns, rows, x, y = [], series, height = 300, compact = false, incompleteMonths,
+  type,
+  columns,
+  rows,
+  x,
+  y = [],
+  series,
+  height = 300,
+  compact = false,
+  incompleteMonths,
 }: Props) {
   const xCol = columns.find((c) => c.name === x) ?? columns.find((c) => c.role === "dimension");
   const measures = columns.filter((c) => (y.length ? y.includes(c.name) : c.role === "measure"));
@@ -234,9 +352,9 @@ export function ChartView({
       rows.map((r) =>
         Boolean(
           incompleteMonths &&
-            xCol?.dimension_type === "time" &&
-            ["month", "week", "day"].includes(xCol.grain ?? "") &&
-            incompleteMonths.has(String(r[xCol.name]).slice(0, 7)),
+          xCol?.dimension_type === "time" &&
+          ["month", "week", "day"].includes(xCol.grain ?? "") &&
+          incompleteMonths.has(String(r[xCol.name]).slice(0, 7)),
         ),
       ),
     [rows, xCol, incompleteMonths],
@@ -266,13 +384,28 @@ export function ChartView({
           <LineChart data={wide} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey={xKey} {...AXIS} tickLine={false} minTickGap={24} />
-            <YAxis {...AXIS} tickLine={false} axisLine={false} width={72}
-                   tickFormatter={(v) => formatTick(v, m.format)} />
-            <Tooltip cursor={{ stroke: "var(--axis)" }}
-                     content={(p) => <ChartTooltip {...p} format={(v) => formatValue(v, m.format)} />} />
+            <YAxis
+              {...AXIS}
+              tickLine={false}
+              axisLine={false}
+              width={72}
+              tickFormatter={(v) => formatTick(v, m.format)}
+            />
+            <Tooltip
+              cursor={{ stroke: "var(--axis)" }}
+              content={(p) => <ChartTooltip {...p} format={(v) => formatValue(v, m.format)} />}
+            />
             {names.map((n, i) => (
-              <Line key={n} dataKey={n} name={n} stroke={SERIES[i]} strokeWidth={2} dot={false}
-                    activeDot={{ r: 4, stroke: "var(--surface-1)", strokeWidth: 2 }} isAnimationActive={false} />
+              <Line
+                key={n}
+                dataKey={n}
+                name={n}
+                stroke={SERIES[i]}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: "var(--surface-1)", strokeWidth: 2 }}
+                isAnimationActive={false}
+              />
             ))}
           </LineChart>
         </ResponsiveContainer>
@@ -293,24 +426,47 @@ export function ChartView({
       <div className="grid items-center gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
         <ResponsiveContainer width="100%" height={height}>
           <PieChart>
-            <Pie data={slices} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="88%"
-                 stroke="var(--surface-1)" strokeWidth={2} isAnimationActive={false}>
-              {slices.map((s) => <Cell key={s.name} fill={s.color} />)}
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="name"
+              innerRadius="58%"
+              outerRadius="88%"
+              stroke="var(--surface-1)"
+              strokeWidth={2}
+              isAnimationActive={false}
+            >
+              {slices.map((s) => (
+                <Cell key={s.name} fill={s.color} />
+              ))}
             </Pie>
-            <Tooltip content={(p) => (
-              <ChartTooltip {...p} format={(v) => `${formatValue(v, m.format)} (${total ? ((Number(v) / total) * 100).toFixed(1) : 0}%)`} />
-            )} />
+            <Tooltip
+              content={(p) => (
+                <ChartTooltip
+                  {...p}
+                  format={(v) =>
+                    `${formatValue(v, m.format)} (${total ? ((Number(v) / total) * 100).toFixed(1) : 0}%)`
+                  }
+                />
+              )}
+            />
           </PieChart>
         </ResponsiveContainer>
         <ul className="space-y-1.5 text-sm">
           {slices.map((s) => (
             <li key={s.name} className="flex items-center gap-2">
-              <span className="h-3 w-3 rounded-sm" style={{ background: s.color }} aria-hidden="true" />
+              <span
+                className="h-3 w-3 rounded-sm"
+                style={{ background: s.color }}
+                aria-hidden="true"
+              />
               <span className="min-w-24 text-ink-2">{s.name}</span>
               <span className="font-semibold tabular-nums">
                 {total ? ((s.value / total) * 100).toFixed(1) : "0"}%
               </span>
-              <span className="text-xs tabular-nums text-muted">{formatValue(s.value, m.format, { compact: true })}</span>
+              <span className="text-xs tabular-nums text-muted">
+                {formatValue(s.value, m.format, { compact: true })}
+              </span>
             </li>
           ))}
         </ul>
@@ -324,10 +480,17 @@ export function ChartView({
     <div className={multiple ? "grid gap-6 lg:grid-cols-2" : ""}>
       {measures.map((m) => (
         <figure key={m.name}>
-          {multiple && <figcaption className="mb-1 text-sm font-medium text-ink-2">{m.label}</figcaption>}
+          {multiple && (
+            <figcaption className="mb-1 text-sm font-medium text-ink-2">{m.label}</figcaption>
+          )}
           {type === "line" ? (
-            <SingleLine data={data} xKey={xKey} measure={m} incomplete={incomplete}
-                        height={multiple ? Math.min(height, 240) : height} />
+            <SingleLine
+              data={data}
+              xKey={xKey}
+              measure={m}
+              incomplete={incomplete}
+              height={multiple ? Math.min(height, 240) : height}
+            />
           ) : (
             <SingleBar data={data} xKey={xKey} measure={m} height={height} compact={compact} />
           )}

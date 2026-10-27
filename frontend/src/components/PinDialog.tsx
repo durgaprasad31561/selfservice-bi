@@ -72,28 +72,61 @@ export function PinDialog({ response, onClose, onPinned }: Props) {
           the dashboard opens.
         </p>
         <div>
-          <label className="label" htmlFor="pin-title">Widget title</label>
-          <input id="pin-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} />
+          <label className="label" htmlFor="pin-title">
+            Widget title
+          </label>
+          <input
+            id="pin-title"
+            className="input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={200}
+          />
         </div>
         <div>
-          <label className="label" htmlFor="pin-target">Dashboard</label>
-          <select id="pin-target" className="input" value={target} onChange={(e) => setTarget(e.target.value)}>
+          <label className="label" htmlFor="pin-target">
+            Dashboard
+          </label>
+          <select
+            id="pin-target"
+            className="input"
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+          >
             {editable.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
             ))}
             <option value="new">+ New dashboard…</option>
           </select>
         </div>
         {target === "new" && (
           <div>
-            <label className="label" htmlFor="pin-new">New dashboard name</label>
-            <input id="pin-new" className="input" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={120} />
+            <label className="label" htmlFor="pin-new">
+              New dashboard name
+            </label>
+            <input
+              id="pin-new"
+              className="input"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              maxLength={120}
+            />
           </div>
         )}
-        {error && <p className="text-sm text-critical" role="alert">{error}</p>}
+        {error && (
+          <p className="text-sm text-critical" role="alert">
+            {error}
+          </p>
+        )}
         <div className="flex justify-end gap-2">
-          <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn-primary" disabled={busy}>{busy ? "Pinning…" : "Pin"}</button>
+          <button type="button" className="btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? "Pinning…" : "Pin"}
+          </button>
         </div>
       </form>
     </dialog>

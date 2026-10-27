@@ -25,9 +25,13 @@ export function formatValue(
   const { compact = false } = options;
   switch (format) {
     case "currency":
-      return compact && Math.abs(value) >= 1e4 ? `R$ ${abbreviate(value)}` : `R$ ${nf(2).format(value)}`;
+      return compact && Math.abs(value) >= 1e4
+        ? `R$ ${abbreviate(value)}`
+        : `R$ ${nf(2).format(value)}`;
     case "integer":
-      return compact && Math.abs(value) >= 1e4 ? abbreviate(value) : nf(0).format(Math.round(value));
+      return compact && Math.abs(value) >= 1e4
+        ? abbreviate(value)
+        : nf(0).format(Math.round(value));
     case "percent":
       return `${nf(compact ? 1 : 2).format(value)}%`;
     case "days":

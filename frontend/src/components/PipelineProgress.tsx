@@ -25,7 +25,11 @@ export function PipelineProgress() {
         <li key={s} className="flex items-center gap-2">
           <span
             className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${
-              i < active ? "border-line text-ink-2" : i === active ? "border-accent text-ink" : "border-line text-muted"
+              i < active
+                ? "border-line text-ink-2"
+                : i === active
+                  ? "border-accent text-ink"
+                  : "border-line text-muted"
             }`}
           >
             {i < active ? (
@@ -37,7 +41,11 @@ export function PipelineProgress() {
             )}
             {STEP_LABELS[s]}
           </span>
-          {i < ORDER.length - 1 && <span className="text-muted" aria-hidden="true">→</span>}
+          {i < ORDER.length - 1 && (
+            <span className="text-muted" aria-hidden="true">
+              →
+            </span>
+          )}
         </li>
       ))}
     </ol>
@@ -50,10 +58,22 @@ export function StepTrail({ steps }: { steps: PipelineStep[] }) {
   return (
     <ol className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
       {steps.map((s, i) => (
-        <li key={`${s.name}-${i}`} className="flex items-center gap-1" title={s.detail ?? undefined}>
+        <li
+          key={`${s.name}-${i}`}
+          className="flex items-center gap-1"
+          title={s.detail ?? undefined}
+        >
           {s.status === "ok" && <IconCheck size={12} />}
-          {s.status === "warning" && <span className="text-warn-ink"><IconWarning size={12} /></span>}
-          {s.status === "failed" && <span className="text-critical"><IconX size={12} /></span>}
+          {s.status === "warning" && (
+            <span className="text-warn-ink">
+              <IconWarning size={12} />
+            </span>
+          )}
+          {s.status === "failed" && (
+            <span className="text-critical">
+              <IconX size={12} />
+            </span>
+          )}
           {s.status === "skipped" && <span>–</span>}
           {STEP_LABELS[s.name] ?? s.name}
           <span className="tabular-nums">{s.ms} ms</span>

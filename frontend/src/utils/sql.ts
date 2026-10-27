@@ -1,6 +1,7 @@
 /** Minimal SQL tokenizer for syntax highlighting (no external dependency). */
 
-export type TokenKind = "keyword" | "function" | "string" | "number" | "comment" | "operator" | "text";
+export type TokenKind =
+  "keyword" | "function" | "string" | "number" | "comment" | "operator" | "text";
 
 export interface Token {
   kind: TokenKind;

@@ -12,7 +12,9 @@ import { OverviewPage } from "./pages/OverviewPage";
 function NotFound() {
   return (
     <EmptyState title="Page not found">
-      <Link to="/" className="text-accent hover:underline">Back to the overview</Link>
+      <Link to="/" className="text-accent hover:underline">
+        Back to the overview
+      </Link>
     </EmptyState>
   );
 }

@@ -25,7 +25,12 @@ const NAV = [
 export function ThemeToggle() {
   const { theme, toggle } = useTheme();
   return (
-    <button type="button" onClick={toggle} className="btn-ghost px-2" aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}>
+    <button
+      type="button"
+      onClick={toggle}
+      className="btn-ghost px-2"
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+    >
       {theme === "dark" ? <IconSun /> : <IconMoon />}
     </button>
   );
@@ -68,7 +73,9 @@ function Layout() {
               end={end}
               className={({ isActive }) =>
                 `flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium ${
-                  isActive ? "bg-accent-soft text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+                  isActive
+                    ? "bg-accent-soft text-ink"
+                    : "text-ink-2 hover:bg-surface-2 hover:text-ink"
                 }`
               }
             >
@@ -86,7 +93,13 @@ function Layout() {
             <div className="text-xs text-muted">{user?.email}</div>
           </div>
           {user && <RoleBadge role={user.role} />}
-          <button type="button" className="btn-ghost px-2" onClick={logout} aria-label="Sign out" title="Sign out">
+          <button
+            type="button"
+            className="btn-ghost px-2"
+            onClick={logout}
+            aria-label="Sign out"
+            title="Sign out"
+          >
             <IconLogout />
           </button>
         </header>

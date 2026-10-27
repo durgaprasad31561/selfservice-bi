@@ -35,11 +35,23 @@ describe("formatPeriod", () => {
   it("formats cells by column role", () => {
     expect(
       formatCell("2018-03-01", {
-        name: "order_date", label: "Order Month", role: "dimension", format: null, dimension_type: "time", grain: "month",
+        name: "order_date",
+        label: "Order Month",
+        role: "dimension",
+        format: null,
+        dimension_type: "time",
+        grain: "month",
       }),
     ).toBe("Mar 2018");
     expect(
-      formatCell(10.5, { name: "s", label: "S", role: "measure", format: "currency", dimension_type: null, grain: null }),
+      formatCell(10.5, {
+        name: "s",
+        label: "S",
+        role: "measure",
+        format: "currency",
+        dimension_type: null,
+        grain: null,
+      }),
     ).toBe("R$ 10.50");
   });
 });

@@ -14,7 +14,11 @@ export function Spinner({ label = "Loading" }: { label?: string }) {
 
 const STATUS: Record<Status, { label: string; icon: ReactNode; cls: string }> = {
   answered: { label: "Answered", icon: <IconCheck size={14} />, cls: "text-good" },
-  answered_with_warning: { label: "Answered with warning", icon: <IconWarning size={14} />, cls: "text-warn-ink" },
+  answered_with_warning: {
+    label: "Answered with warning",
+    icon: <IconWarning size={14} />,
+    cls: "text-warn-ink",
+  },
   refused: { label: "Not enough data", icon: <IconInfo size={14} />, cls: "text-ink-2" },
   clarify: { label: "Needs clarification", icon: <IconInfo size={14} />, cls: "text-accent" },
   error: { label: "Error", icon: <IconX size={14} />, cls: "text-critical" },
@@ -24,7 +28,9 @@ const STATUS: Record<Status, { label: string; icon: ReactNode; cls: string }> = 
 export function StatusBadge({ status }: { status: Status }) {
   const s = STATUS[status];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-xs font-medium ${s.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-xs font-medium ${s.cls}`}
+    >
       {s.icon}
       {s.label}
     </span>
@@ -69,7 +75,15 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -84,7 +98,9 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
 export function ErrorNote({ message }: { message: string }) {
   return (
     <div className="card flex items-start gap-2 border-line p-4 text-sm" role="alert">
-      <span className="text-critical"><IconX /></span>
+      <span className="text-critical">
+        <IconX />
+      </span>
       <span>{message}</span>
     </div>
   );

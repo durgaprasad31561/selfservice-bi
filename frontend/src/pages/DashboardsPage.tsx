@@ -41,9 +41,17 @@ export function DashboardsPage() {
       {canEditDashboards && (
         <form onSubmit={submit} className="card mb-6 flex flex-wrap items-end gap-3 p-4">
           <div className="min-w-[16rem] flex-1">
-            <label className="label" htmlFor="dash-name">New dashboard</label>
-            <input id="dash-name" className="input" placeholder="e.g. Sales review 2018" value={name}
-                   maxLength={120} onChange={(e) => setName(e.target.value)} />
+            <label className="label" htmlFor="dash-name">
+              New dashboard
+            </label>
+            <input
+              id="dash-name"
+              className="input"
+              placeholder="e.g. Sales review 2018"
+              value={name}
+              maxLength={120}
+              onChange={(e) => setName(e.target.value)}
+            />
           </div>
           <button type="submit" className="btn-primary" disabled={!name.trim() || create.isPending}>
             <IconPlus size={16} /> Create
@@ -60,21 +68,33 @@ export function DashboardsPage() {
             : "Analysts create dashboards; they will appear here for you to view."}
         </EmptyState>
       )}
-      {[{ title: "Yours", list: mine }, { title: "Shared by others", list: others }].map(
+      {[
+        { title: "Yours", list: mine },
+        { title: "Shared by others", list: others },
+      ].map(
         ({ title, list }) =>
           list.length > 0 && (
             <section key={title} className="mb-6">
               <h2 className="label">{title}</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((d) => (
-                  <Link key={d.id} to={`/dashboards/${d.id}`} className="card block p-4 hover:border-accent">
+                  <Link
+                    key={d.id}
+                    to={`/dashboards/${d.id}`}
+                    className="card block p-4 hover:border-accent"
+                  >
                     <div className="flex items-center gap-2">
-                      <span className="text-accent"><IconGrid size={18} /></span>
+                      <span className="text-accent">
+                        <IconGrid size={18} />
+                      </span>
                       <h3 className="truncate font-semibold">{d.name}</h3>
                     </div>
-                    {d.description && <p className="mt-1 line-clamp-2 text-sm text-ink-2">{d.description}</p>}
+                    {d.description && (
+                      <p className="mt-1 line-clamp-2 text-sm text-ink-2">{d.description}</p>
+                    )}
                     <p className="mt-3 text-xs text-muted">
-                      {d.widget_count} widget{d.widget_count === 1 ? "" : "s"} · updated {formatDateTime(d.updated_at)}
+                      {d.widget_count} widget{d.widget_count === 1 ? "" : "s"} · updated{" "}
+                      {formatDateTime(d.updated_at)}
                     </p>
                   </Link>
                 ))}

@@ -2,8 +2,22 @@ import { slugify, toCsv } from "./csv";
 import type { ColumnInfo } from "../types/api";
 
 const cols: ColumnInfo[] = [
-  { name: "state", label: "Customer State", role: "dimension", format: null, dimension_type: "categorical", grain: null },
-  { name: "sales", label: "Total Sales", role: "measure", format: "currency", dimension_type: null, grain: null },
+  {
+    name: "state",
+    label: "Customer State",
+    role: "dimension",
+    format: null,
+    dimension_type: "categorical",
+    grain: null,
+  },
+  {
+    name: "sales",
+    label: "Total Sales",
+    role: "measure",
+    format: "currency",
+    dimension_type: null,
+    grain: null,
+  },
 ];
 
 it("writes labels as header and raw values, escaping commas and quotes", () => {

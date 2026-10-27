@@ -42,19 +42,36 @@ export function AskPage() {
             ? `Brazilian orders from ${coverage.min_date} to ${coverage.max_date}. Money in Brazilian Real (R$).`
             : "Questions are answered from the Olist semantic layer."
         }
-        actions={entries.length > 0 && <button type="button" className="btn-ghost" onClick={clear}>Clear answers</button>}
+        actions={
+          entries.length > 0 && (
+            <button type="button" className="btn-ghost" onClick={clear}>
+              Clear answers
+            </button>
+          )
+        }
       />
 
-      <QuestionBox metadata={metadata.data} disabled={busy} value={question} onChange={setQuestion} onSubmit={run} />
+      <QuestionBox
+        metadata={metadata.data}
+        disabled={busy}
+        value={question}
+        onChange={setQuestion}
+        onSubmit={run}
+      />
 
       {suggestions.data && entries.length === 0 && (
         <section className="mt-6">
           <h2 className="label">Try one of these</h2>
           <div className="flex flex-wrap gap-2">
             {suggestions.data.map((s) => (
-              <button key={s.question} type="button" disabled={busy} onClick={() => run(s.question)}
-                      className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-2 hover:border-accent hover:text-ink"
-                      title={s.category}>
+              <button
+                key={s.question}
+                type="button"
+                disabled={busy}
+                onClick={() => run(s.question)}
+                className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-2 hover:border-accent hover:text-ink"
+                title={s.category}
+              >
                 {s.question}
               </button>
             ))}

@@ -25,7 +25,11 @@ export function SqlPanel({ sql }: { sql: string }) {
   };
   return (
     <div className="relative">
-      <button type="button" onClick={copy} className="btn-ghost absolute right-2 top-2 px-2 py-1 text-xs">
+      <button
+        type="button"
+        onClick={copy}
+        className="btn-ghost absolute right-2 top-2 px-2 py-1 text-xs"
+      >
         {copied ? "Copied" : "Copy"}
       </button>
       <pre className="max-h-80 overflow-auto rounded-lg border border-line bg-surface-2 p-4 pr-16 font-mono text-[12.5px] leading-relaxed">

@@ -47,9 +47,9 @@ The loader exits non-zero if any verification check fails.
 
 | Table | Grain | Notes |
 |---|---|---|
-| `fact_orders` | 1 row per order | `order_revenue` = sum of that order's payments; `items_amount`, `freight_amount`, `item_count` = sums of that order's items; `delivery_days`, `is_late`, `delivery_status`, avg `review_score`, `primary_payment_type` (largest payment), `installments` |
-| `fact_order_items` | 1 row per item | English category + label, seller city/state, customer location, order status and purchase date |
-| `fact_payments` | 1 row per payment | payment type code + label, installments, value, customer location, order status and date |
+| `fact_orders` | 1 row per order | `order_revenue` = sum of that order's payments; `items_amount`, `freight_amount`, `item_count` = sums of that order's items; `delivery_days`, `is_late`, `delivery_status`, avg `review_score`, `primary_payment_type` (largest payment), `installments`, `customer_lifetime_orders` (orders by the same person over the whole period, for repeat customers), customer region |
+| `fact_order_items` | 1 row per item | English category + label, seller city/state, customer location and region, order status and purchase date; the order's `delivery_days`, `is_late`, `delivery_status` and `review_score` repeated per item for per-category / per-seller analysis |
+| `fact_payments` | 1 row per payment | payment type code + label, installments, value, customer location and region, order status and date |
 | `dim_customers` | 1 row per `customer_unique_id` | location from latest order, first/last order date, order count |
 | `dim_products`, `dim_sellers`, `dim_states`, `dim_geo` | 1 row per key | descriptive attributes |
 | `dim_date` | 1 row per day, 2016-01-01 .. 2018-12-31 | grains + `has_orders` |
