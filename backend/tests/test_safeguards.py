@@ -578,3 +578,14 @@ def test_many_rows_use_table(make_service) -> None:
     )
     assert resp.chart.type == "table" and resp.row_count == 1000
     assert any("first 1000 rows" in w for w in resp.warnings)
+
+
+@pytest.mark.integration
+def test_trend_answer_ignores_incomplete_months(make_service) -> None:
+    q = "Monthly orders in 2018"
+    resp = make_service(
+        {q: {"measures": ["order_count"], "dimensions": ["order_date"], "time_grain": "month"}}
+    ).answer(q)
+    assert "lowest in Oct 2018" not in resp.answer_text
+    assert "(excluding incomplete months)" in resp.answer_text
+    assert resp.explanation.notes == []  # no ranking note on a time series

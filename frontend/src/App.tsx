@@ -1,13 +1,35 @@
-/** Application shell. Pages and routing are added in Phase 7. */
+import { Link, Route, Routes } from "react-router-dom";
+import { RequireAuth } from "./components/Layout";
+import { EmptyState } from "./components/ui";
+import { AskPage } from "./pages/AskPage";
+import { CatalogPage } from "./pages/CatalogPage";
+import { DashboardDetailPage } from "./pages/DashboardDetailPage";
+import { DashboardsPage } from "./pages/DashboardsPage";
+import { HistoryPage } from "./pages/HistoryPage";
+import { LoginPage } from "./pages/LoginPage";
+import { OverviewPage } from "./pages/OverviewPage";
+
+function NotFound() {
+  return (
+    <EmptyState title="Page not found">
+      <Link to="/" className="text-accent hover:underline">Back to the overview</Link>
+    </EmptyState>
+  );
+}
+
 export default function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="max-w-xl text-center">
-        <h1 className="text-3xl font-semibold">Self-Service BI</h1>
-        <p className="mt-3 text-slate-600 dark:text-slate-400">
-          Ask questions about Olist e-commerce data in plain English.
-        </p>
-      </div>
-    </main>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route element={<RequireAuth />}>
+        <Route index element={<OverviewPage />} />
+        <Route path="ask" element={<AskPage />} />
+        <Route path="dashboards" element={<DashboardsPage />} />
+        <Route path="dashboards/:id" element={<DashboardDetailPage />} />
+        <Route path="catalog" element={<CatalogPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   );
 }

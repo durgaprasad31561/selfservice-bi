@@ -43,6 +43,7 @@ def semantic_answer(
     filters: list[str],
     period: str | None,
     descending: bool = True,
+    incomplete_periods: set[str] | None = None,
 ) -> str:
     """Answer sentence for a semantic-layer result."""
     measures = [c for c in columns if c.role == "measure"]
@@ -64,6 +65,18 @@ def semantic_answer(
         valued = [r for r in rows if r.get(main.name) is not None]
         if not valued:
             return f"{main.label} has no values{ctx}."
+        # incomplete months (little or no data) must not be reported as real lows/highs
+        complete = [
+            r
+            for r in valued
+            if not (
+                incomplete_periods
+                and time.grain in ("month", "week", "day")
+                and str(r.get(time.name))[:7] in incomplete_periods
+            )
+        ]
+        note = " (excluding incomplete months)" if complete and len(complete) < len(valued) else ""
+        valued = complete or valued
         hi = max(valued, key=lambda r: r[main.name])
         lo = min(valued, key=lambda r: r[main.name])
         first, last = _dim_text(rows[0], time), _dim_text(rows[-1], time)
@@ -71,7 +84,7 @@ def semantic_answer(
         return (
             f"{main.label} by {grain}{ctx} from {first} to {last}: highest in "
             f"{_dim_text(hi, time)} ({_value_text(hi, main)}), lowest in "
-            f"{_dim_text(lo, time)} ({_value_text(lo, main)})."
+            f"{_dim_text(lo, time)} ({_value_text(lo, main)}){note}."
         )
     if time:
         other = next(d for d in dims if d is not time)

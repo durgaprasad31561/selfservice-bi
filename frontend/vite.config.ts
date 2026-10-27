@@ -11,6 +11,17 @@ export default defineConfig({
       "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // keep the big chart library and React in their own cacheable chunks
+        manualChunks: {
+          charts: ["recharts"],
+          react: ["react", "react-dom", "react-router-dom", "@tanstack/react-query", "axios"],
+        },
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,

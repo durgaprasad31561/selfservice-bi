@@ -301,7 +301,15 @@ class QueryService:
         filters_text = self._filters_text(resolution.plan)
         period = self._period_text(plan)
         descending = not any(o.direction == "asc" for o in plan.order_by)
-        answer = semantic_answer(columns, data, filters_text, period, descending)
+        incomplete = {
+            m.month_start.isoformat()[:7]
+            for m in (self.catalog.coverage.months if self.catalog.coverage else [])
+            if m.status != "full"
+        }
+        answer = semantic_answer(columns, data, filters_text, period, descending, incomplete)
+        is_ranking = bool(compiled.dimensions) and (
+            self.model.default_time_dimension not in compiled.dimensions
+        )
         explanation = Explanation(
             mode="semantic",
             definitions=compiled.definitions,
@@ -310,9 +318,7 @@ class QueryService:
             time_range=compiled.time_range_text,
             sources=compiled.sources,
             notes=(
-                [f"Default ordering: {'descending' if descending else 'ascending'}."]
-                if compiled.dimensions
-                else []
+                [f"Sorted {'highest' if descending else 'lowest'} first."] if is_ranking else []
             ),
         )
         return self._final(t, answer, run, columns, data, chart, explanation)
