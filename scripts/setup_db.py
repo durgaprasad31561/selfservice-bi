@@ -70,8 +70,13 @@ def main() -> None:
     print(f"Connecting to PostgreSQL at {host}:{port} as {superuser} ...")
     try:
         server = psycopg.connect(
-            host=host, port=port, user=superuser, password=su_password,
-            dbname="postgres", autocommit=True, connect_timeout=10,
+            host=host,
+            port=port,
+            user=superuser,
+            password=su_password,
+            dbname="postgres",
+            autocommit=True,
+            connect_timeout=10,
         )
     except psycopg.OperationalError as exc:
         sys.exit(f"ERROR: could not connect as {superuser}: {exc}")
@@ -84,15 +89,19 @@ def main() -> None:
             print(f"  database {db_name}: exists")
         else:
             cur.execute(
-                sql.SQL("CREATE DATABASE {} OWNER bi_admin ENCODING 'UTF8' TEMPLATE template0").format(
-                    sql.Identifier(db_name)
-                )
+                sql.SQL(
+                    "CREATE DATABASE {} OWNER bi_admin ENCODING 'UTF8' TEMPLATE template0"
+                ).format(sql.Identifier(db_name))
             )
             print(f"  database {db_name}: created")
 
     db = psycopg.connect(
-        host=host, port=port, user=superuser, password=su_password,
-        dbname=db_name, autocommit=True,
+        host=host,
+        port=port,
+        user=superuser,
+        password=su_password,
+        dbname=db_name,
+        autocommit=True,
     )
     with db, db.cursor() as cur:
         ident = sql.Identifier(db_name)
@@ -120,9 +129,14 @@ def main() -> None:
             "GRANT SELECT ON TABLES TO bi_reader"
         )
         # Defensive defaults for the read-only role.
-        cur.execute(sql.SQL("ALTER ROLE bi_reader IN DATABASE {} SET default_transaction_read_only = on").format(ident))
-        cur.execute(sql.SQL("ALTER ROLE bi_reader IN DATABASE {} SET search_path = analytics").format(ident))
-        cur.execute(sql.SQL("ALTER ROLE bi_reader IN DATABASE {} SET statement_timeout = '30s'").format(ident))
+        for setting_sql in (
+            "default_transaction_read_only = on",
+            "search_path = analytics",
+            "statement_timeout = '30s'",
+        ):
+            cur.execute(
+                sql.SQL("ALTER ROLE bi_reader IN DATABASE {} SET " + setting_sql).format(ident)
+            )
         cur.execute("ALTER ROLE bi_reader CONNECTION LIMIT 50")
         print("  grants: bi_reader -> SELECT on analytics (read-only)")
 
