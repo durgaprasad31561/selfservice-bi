@@ -561,3 +561,23 @@ def test_wrong_period_is_corrected_but_narrower_kept(offline_catalog: SemanticCa
     assert planner.plan("sales in March 2018").plan.time_range.start == date(2018, 3, 1)
     kept = planner.plan("sales in the first half of 2018").plan.time_range
     assert (kept.start, kept.end) == (date(2018, 1, 1), date(2018, 6, 30))
+
+
+def test_grok_provider_settings() -> None:
+    s = settings(
+        llm_provider="grok", xai_api_key="xai-key", xai_model="grok-a", xai_fallback_models="grok-b"
+    )
+    assert s.llm_models == ["grok-a", "grok-b"] and s.llm_api_key == "xai-key"
+    assert s.llm_env_names == ("XAI_API_KEY", "XAI_MODEL")
+    with pytest.raises(LLMNotConfigured, match="XAI_API_KEY is empty"):
+        LLMClient(settings(llm_provider="grok", xai_model="grok-a"))
+    with pytest.raises(LLMNotConfigured, match="XAI_MODEL is empty"):
+        LLMClient(settings(llm_provider="grok", xai_api_key="k"))
+
+
+def test_grok_client_uses_xai_endpoint() -> None:
+    client = LLMClient(settings(llm_provider="grok", xai_api_key="xai-key", xai_model="grok-a"))
+    chat = client._build("grok-a")
+    assert type(chat).__name__ == "ChatOpenAI"
+    assert str(chat.openai_api_base).rstrip("/") == "https://api.x.ai/v1"
+    assert chat.model_name == "grok-a" and chat.temperature == 0

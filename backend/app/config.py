@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     reader_database_url: str = Field(..., description="bi_reader: ALL user queries (read-only)")
 
     # LLM
-    llm_provider: Literal["gemini", "openai"] = "gemini"
+    llm_provider: Literal["gemini", "openai", "grok"] = "gemini"
     gemini_api_key: str = ""
     gemini_model: str = ""
     gemini_fallback_models: str = ""
@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = ""
     openai_fallback_models: str = ""
+    # xAI Grok (OpenAI-compatible API)
+    xai_api_key: str = ""
+    xai_model: str = ""
+    xai_fallback_models: str = ""
+    xai_base_url: str = "https://api.x.ai/v1"
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = Field(2, ge=0, le=5)
     llm_cache_ttl_seconds: int = 3600
@@ -57,16 +62,27 @@ class Settings(BaseSettings):
     @property
     def llm_models(self) -> list[str]:
         """Primary model followed by fallbacks for the configured provider."""
-        if self.llm_provider == "gemini":
-            primary, fallbacks = self.gemini_model, self.gemini_fallback_models
-        else:
-            primary, fallbacks = self.openai_model, self.openai_fallback_models
+        primary, fallbacks = {
+            "gemini": (self.gemini_model, self.gemini_fallback_models),
+            "openai": (self.openai_model, self.openai_fallback_models),
+            "grok": (self.xai_model, self.xai_fallback_models),
+        }[self.llm_provider]
         names = [primary.strip()] + [m.strip() for m in fallbacks.split(",")]
         return list(dict.fromkeys(n for n in names if n))
 
     @property
     def llm_api_key(self) -> str:
-        return self.gemini_api_key if self.llm_provider == "gemini" else self.openai_api_key
+        return {
+            "gemini": self.gemini_api_key,
+            "openai": self.openai_api_key,
+            "grok": self.xai_api_key,
+        }[self.llm_provider]
+
+    @property
+    def llm_env_names(self) -> tuple[str, str]:
+        """(.env key variable, .env model variable) for the configured provider."""
+        prefix = {"gemini": "GEMINI", "openai": "OPENAI", "grok": "XAI"}[self.llm_provider]
+        return f"{prefix}_API_KEY", f"{prefix}_MODEL"
 
     @property
     def cors_origin_list(self) -> list[str]:

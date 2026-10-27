@@ -161,8 +161,7 @@ class LLMClient:
     # ------------------------------------------------------------- factory
 
     def configuration_problem(self) -> str | None:
-        key_var = "GEMINI_API_KEY" if self.provider == "gemini" else "OPENAI_API_KEY"
-        model_var = "GEMINI_MODEL" if self.provider == "gemini" else "OPENAI_MODEL"
+        key_var, model_var = self.settings.llm_env_names
         if not self.settings.llm_api_key:
             return (
                 f"The AI model is not configured: {key_var} is empty in .env "
@@ -196,6 +195,16 @@ class LLMClient:
             )
         from langchain_openai import ChatOpenAI
 
+        if self.provider == "grok":
+            # xAI's API is OpenAI-compatible: same client, different endpoint and key.
+            return ChatOpenAI(
+                model=model,
+                api_key=s.xai_api_key,
+                base_url=s.xai_base_url,
+                temperature=0,
+                timeout=s.llm_timeout_seconds,
+                max_retries=0,
+            )
         return ChatOpenAI(
             model=model,
             api_key=s.openai_api_key,
