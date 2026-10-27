@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -81,6 +82,29 @@ def is_overloaded(exc: BaseException) -> bool:
     """True when the model itself is overloaded: switch to a fallback instead of waiting."""
     text = f"{type(exc).__name__}: {exc}"
     return any(marker in text for marker in _OVERLOAD_MARKERS)
+
+
+_QUOTA_MARKERS = ("RESOURCE_EXHAUSTED", "quota", "insufficient_quota")
+DEFAULT_QUOTA_COOL_DOWN = 3600.0
+
+
+def is_quota_exhausted(exc: BaseException) -> bool:
+    """True when the API key's quota for this model is used up (retrying will not help)."""
+    text = f"{type(exc).__name__}: {exc}"
+    return any(marker in text for marker in _QUOTA_MARKERS)
+
+
+def quota_retry_seconds(exc: BaseException) -> float:
+    """Seconds until the quota resets, from the provider's message (default 1 hour)."""
+    text = str(exc)
+    m = re.search(r"retryDelay'?:\s*'?(\d+)s", text)
+    if m:
+        return min(float(m.group(1)), 86_400.0)
+    m = re.search(r"retry in (?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?", text)
+    if m and any(m.groups()):
+        h, mi, se = (float(g) if g else 0.0 for g in m.groups())
+        return min(h * 3600 + mi * 60 + se, 86_400.0)
+    return DEFAULT_QUOTA_COOL_DOWN
 
 
 def is_transient(exc: BaseException) -> bool:
@@ -192,8 +216,10 @@ class LLMClient:
         last_error: BaseException | None = None
         started = time.perf_counter()
         models = self._ordered_models()
+        all_quota, quota_seen = True, False
         for index, model in enumerate(models):
             has_fallback = index < len(models) - 1
+            quota_hit = False
             runnable = self._chat(model).with_structured_output(
                 schema, include_raw=True, method=method
             )
@@ -211,6 +237,12 @@ class LLMClient:
                             f"The AI model request failed ({type(exc).__name__}). "
                             "Check the API key and model name in .env."
                         ) from exc
+                    if is_quota_exhausted(exc):
+                        cool = quota_retry_seconds(exc)
+                        self._unhealthy_until[model] = time.monotonic() + cool
+                        log.warning("quota exhausted for %s (resets in %.0f min)", model, cool / 60)
+                        quota_hit = True
+                        break  # retrying the same model cannot succeed
                     if is_overloaded(exc) and has_fallback:
                         break  # go straight to the next model
                     if attempt < self.settings.llm_max_retries:
@@ -238,8 +270,16 @@ class LLMClient:
                     latency_ms=int((time.perf_counter() - started) * 1000),
                     attempts=attempts,
                 )
-            self._unhealthy_until[model] = time.monotonic() + COOL_DOWN_SECONDS
+            quota_seen = quota_seen or quota_hit
+            all_quota = all_quota and quota_hit
+            if not quota_hit:
+                self._unhealthy_until[model] = time.monotonic() + COOL_DOWN_SECONDS
             log.warning("model %s unavailable, trying next fallback", model)
+        if all_quota and quota_seen:
+            raise LLMUnavailable(
+                "The AI model's usage quota is used up for now (API plan limit). "
+                "Try again later, or configure another model or provider in .env."
+            ) from last_error
         raise LLMUnavailable(
             "The AI model is temporarily unavailable (high demand). Please try again in a minute."
         ) from last_error

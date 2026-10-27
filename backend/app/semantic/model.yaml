@@ -579,6 +579,16 @@ dimensions:
       fact_order_items: {key: seller_city, display: INITCAP(seller_city)}
     values_from: {source: fact_order_items, key: seller_city}
 
+  - name: seller
+    label: Seller
+    description: Individual seller, identified by an anonymised seller ID (no seller names exist). Use for seller rankings.
+    type: categorical
+    matching: exact
+    synonyms: [seller, sellers, top sellers, best sellers, vendor, vendors, merchant, merchants, store, stores, by seller, per seller, seller id]
+    columns:
+      fact_order_items: {key: seller_id}
+    values_from: {source: fact_order_items, key: seller_id}
+
   - name: product_category
     label: Product Category
     description: English product category (e.g. 'Health & Beauty'). Only item-level measures can be split by category.

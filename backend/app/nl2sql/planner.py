@@ -19,7 +19,7 @@ from typing import Literal
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from pydantic import BaseModel, Field, ValidationError
 
-from app.nl2sql.dates import RelativeRange, find_relative_range
+from app.nl2sql.dates import RelativeRange, find_relative_range, single_explicit_period
 from app.nl2sql.llm import LLMClient, LLMError, get_llm_client
 from app.nl2sql.prompts import (
     PROMPT_VERSION,
@@ -204,6 +204,32 @@ def apply_relative_dates(
     return updated, rel
 
 
+def apply_explicit_period(plan: QueryPlan, question: str) -> QueryPlan:
+    """Make sure a single period written in the question ("in 2018") is in the plan.
+
+    The model sometimes drops or misreads the period; the question text is the
+    authority. Plans with several periods (comparisons) are left to the model.
+    """
+    period = single_explicit_period(question)
+    if period is None or not plan.can_answer or plan.clarification_needed:
+        return plan
+    tr = plan.time_range
+    if tr is not None and tr.start == period.start and tr.end == period.end:
+        return plan
+    if tr is not None and period.start <= tr.start and tr.end <= period.end:
+        return plan  # the model narrowed it further (e.g. "first half of 2018")
+    note = (
+        f"Applied the period '{period.phrase}' from the question "
+        f"({period.start.isoformat()} to {period.end.isoformat()})."
+    )
+    return plan.model_copy(
+        update={
+            "time_range": TimeRange(start=period.start, end=period.end, label=period.phrase),
+            "assumptions": [*plan.assumptions, note],
+        }
+    )
+
+
 # --------------------------------------------------------------------- cache
 
 
@@ -305,6 +331,8 @@ class Planner:
         assert llm_plan is not None
         plan = to_query_plan(llm_plan)
         plan, rel = apply_relative_dates(plan, question, today)
+        if rel is None:
+            plan = apply_explicit_period(plan, question)
         out = PlanResult(
             plan=plan,
             needs_custom_sql=llm_plan.needs_custom_sql and plan.can_answer,

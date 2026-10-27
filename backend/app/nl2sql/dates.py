@@ -139,3 +139,76 @@ def find_relative_range(question: str, today: date) -> RelativeRange | None:
         if m:
             return RelativeRange(m.group(0), start, end)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Explicit periods ("2018", "March 2018", "Q1 2018")
+# ---------------------------------------------------------------------------
+
+_MONTHS = {
+    "january": 1,
+    "jan": 1,
+    "february": 2,
+    "feb": 2,
+    "march": 3,
+    "mar": 3,
+    "april": 4,
+    "apr": 4,
+    "may": 5,
+    "june": 6,
+    "jun": 6,
+    "july": 7,
+    "jul": 7,
+    "august": 8,
+    "aug": 8,
+    "september": 9,
+    "sep": 9,
+    "sept": 9,
+    "october": 10,
+    "oct": 10,
+    "november": 11,
+    "nov": 11,
+    "december": 12,
+    "dec": 12,
+}
+_MONTH_PAT = "|".join(sorted(_MONTHS, key=len, reverse=True))
+
+
+@dataclass(frozen=True)
+class ExplicitPeriod:
+    """A single calendar period written in the question."""
+
+    phrase: str
+    start: date
+    end: date
+
+
+def find_explicit_periods(question: str) -> list[ExplicitPeriod]:
+    """All explicit periods in the question (month-year, quarter-year, year), in order."""
+    q = question.lower()
+    found: list[tuple[int, int, ExplicitPeriod]] = []
+
+    def add(m: re.Match[str], start: date, end: date) -> None:
+        if not any(a <= m.start() < b or a < m.end() <= b for a, b, _ in found):
+            found.append((m.start(), m.end(), ExplicitPeriod(m.group(0).strip(), start, end)))
+
+    for m in re.finditer(rf"\b({_MONTH_PAT})\.?\s*(?:of\s+)?((?:19|20)\d{{2}})\b", q):
+        start = date(int(m.group(2)), _MONTHS[m.group(1)], 1)
+        add(m, start, _month_end(start))
+    for m in re.finditer(r"\bq([1-4])\s*((?:19|20)\d{2})\b|\b((?:19|20)\d{2})\s*q([1-4])\b", q):
+        quarter = int(m.group(1) or m.group(4))
+        year = int(m.group(2) or m.group(3))
+        start = date(year, 3 * (quarter - 1) + 1, 1)
+        add(m, start, _add_months(start, 3) - timedelta(days=1))
+    for m in re.finditer(r"\b((?:19|20)\d{2})\b", q):
+        year = int(m.group(1))
+        add(m, date(year, 1, 1), date(year, 12, 31))
+    return [p for _, _, p in sorted(found, key=lambda x: x[0])]
+
+
+def single_explicit_period(question: str) -> ExplicitPeriod | None:
+    """The one explicit period in the question, or None if there are zero or several."""
+    periods = find_explicit_periods(question)
+    if len({(p.start, p.end) for p in periods}) == 1:
+        return periods[0]
+    return None

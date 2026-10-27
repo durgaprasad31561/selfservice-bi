@@ -488,3 +488,76 @@ def test_live_planner(catalog: SemanticCatalog) -> None:
     result = Planner(catalog, cache=TTLCache(0)).plan("Total sales in 2017")
     assert result.plan.measures == ["total_sales"]
     assert result.plan.time_range.start == date(2017, 1, 1)
+
+
+def test_quota_exhausted_skips_model_without_retry(monkeypatch) -> None:
+    from app.nl2sql.llm import quota_retry_seconds
+
+    calls = {"primary": 0}
+
+    def primary():
+        calls["primary"] += 1
+        raise RuntimeError("429 RESOURCE_EXHAUSTED quota exceeded. Please retry in 2h0m0s.")
+
+    ok = {"raw": None, "parsed": LLMPlan(measures=["order_count"]), "parsing_error": None}
+    client = _client_with(monkeypatch, {"primary": primary, "fallback": lambda: ok})
+    assert client.structured([], LLMPlan, "plan").model == "fallback"
+    assert calls["primary"] == 1  # no retries against an exhausted quota
+    import time as _time
+
+    assert client._unhealthy_until["primary"] - _time.monotonic() > 3600
+    assert quota_retry_seconds(RuntimeError("'retryDelay': '52776s'")) == 52776
+
+
+def test_all_quotas_exhausted_message(monkeypatch) -> None:
+    def exhausted():
+        raise RuntimeError("429 RESOURCE_EXHAUSTED quota")
+
+    client = _client_with(monkeypatch, {"primary": exhausted, "fallback": exhausted})
+    with pytest.raises(LLMUnavailable, match="quota"):
+        client.structured([], LLMPlan, "plan")
+
+
+@pytest.mark.parametrize(
+    "question, start, end",
+    [
+        ("Top 5 sellers in 2018", date(2018, 1, 1), date(2018, 12, 31)),
+        ("sales in March 2018", date(2018, 3, 1), date(2018, 3, 31)),
+        ("revenue for sept 2017", date(2017, 9, 1), date(2017, 9, 30)),
+        ("orders in Q2 2017", date(2017, 4, 1), date(2017, 6, 30)),
+        ("orders in 2018 Q4", date(2018, 10, 1), date(2018, 12, 31)),
+        ("sales in november of 2016", date(2016, 11, 1), date(2016, 11, 30)),
+    ],
+)
+def test_single_explicit_period(question: str, start: date, end: date) -> None:
+    from app.nl2sql.dates import single_explicit_period
+
+    p = single_explicit_period(question)
+    assert p is not None and (p.start, p.end) == (start, end)
+
+
+@pytest.mark.parametrize("question", ["compare 2017 and 2018", "sales by month", "top sellers"])
+def test_no_single_explicit_period(question: str) -> None:
+    from app.nl2sql.dates import single_explicit_period
+
+    assert single_explicit_period(question) is None
+
+
+def test_missing_period_is_restored(offline_catalog: SemanticCatalog) -> None:
+    planner, _ = make_planner(
+        offline_catalog, LLMPlan(measures=["product_sales"], dimensions=["seller"], limit=5)
+    )
+    plan = planner.plan("Top 5 sellers by product sales in 2018").plan
+    assert plan.time_range.start == date(2018, 1, 1) and plan.time_range.end == date(2018, 12, 31)
+    assert any("Applied the period '2018'" in a for a in plan.assumptions)
+
+
+def test_wrong_period_is_corrected_but_narrower_kept(offline_catalog: SemanticCatalog) -> None:
+    planner, _ = make_planner(
+        offline_catalog,
+        LLMPlan(measures=["total_sales"], time_start="2017-01-01", time_end="2017-12-31"),
+        LLMPlan(measures=["total_sales"], time_start="2018-01-01", time_end="2018-06-30"),
+    )
+    assert planner.plan("sales in March 2018").plan.time_range.start == date(2018, 3, 1)
+    kept = planner.plan("sales in the first half of 2018").plan.time_range
+    assert (kept.start, kept.end) == (date(2018, 1, 1), date(2018, 6, 30))
