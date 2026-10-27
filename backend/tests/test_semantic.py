@@ -310,9 +310,20 @@ def test_coverage(catalog: SemanticCatalog) -> None:
 
 @pytest.mark.integration
 def test_metadata_endpoint(reader_engine: Engine) -> None:
+    from app.config import get_settings
     from app.main import app
 
+    settings = get_settings()
     with TestClient(app) as client:
+        assert client.get("/api/metadata").status_code == 401
+        token = client.post(
+            "/api/auth/login",
+            json={
+                "email": settings.demo_viewer_email,
+                "password": settings.demo_viewer_password,
+            },
+        ).json()["access_token"]
+        client.headers["Authorization"] = f"Bearer {token}"
         resp = client.get("/api/metadata")
         assert resp.status_code == 200
         body = resp.json()
@@ -327,4 +338,4 @@ def test_metadata_endpoint(reader_engine: Engine) -> None:
         assert body["coverage"]["min_date"] == "2016-09-04"
         slim = client.get("/api/metadata", params={"include_values": False}).json()
         assert all("values" not in d for d in slim["dimensions"])
-        assert client.get("/api/health").json()["status"] == "ok"
+        assert client.get("/api/health").json()["database"]["reader"]["ok"]

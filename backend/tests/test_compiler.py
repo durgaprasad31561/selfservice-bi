@@ -384,3 +384,32 @@ def test_sao_paulo_2018(model: SemanticModel, reader_engine: Engine) -> None:
 def test_reader_cannot_write(reader_engine: Engine) -> None:
     with reader_engine.connect() as conn, pytest.raises(DBAPIError):
         conn.execute(text("CREATE TABLE analytics.hack (i int)"))
+
+
+@pytest.mark.integration
+def test_multi_source_columns_follow_requested_order(
+    model: SemanticModel, reader_engine: Engine
+) -> None:
+    """Regression: measures from several sources must come back in the requested order."""
+    measures = [
+        "total_sales",
+        "order_count",
+        "customer_count",
+        "average_order_value",
+        "average_rating",
+        "late_delivery_rate",
+    ]
+    q = compile_plan(plan(measures=measures), model)
+    with reader_engine.connect() as conn:
+        result = conn.execute(text(q.sql), q.params)
+        names, row = list(result.keys()), result.one()
+    assert names == measures == [c.name for c in q.columns]
+    values = dict(zip(names, row, strict=True))
+    assert values["order_count"] == 99_441 and values["customer_count"] == 96_096
+    assert 100 < values["average_order_value"] < 200
+    with reader_engine.connect() as conn:
+        grouped = compile_plan(
+            plan(measures=["items_sold", "total_sales"], dimensions=["customer_state"]), model
+        )
+        res = conn.execute(text(grouped.sql), grouped.params)
+        assert list(res.keys()) == ["customer_state", "items_sold", "total_sales"]

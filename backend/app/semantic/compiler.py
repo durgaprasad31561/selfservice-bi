@@ -284,9 +284,9 @@ def compile_plan(plan: QueryPlan, model: SemanticModel, max_rows: int = 1000) ->
     else:
         names = [f"g{i + 1}" for i in range(len(group_sql))]
         ctes = [f"{n} AS (\n{s}\n)" for n, s in zip(names, group_sql, strict=True)]
-        measure_cols = [
-            f"{n}.{m.name}" for n, (_, ms) in zip(names, groups.items(), strict=True) for m in ms
-        ]
+        owner = {m.name: n for n, (_, ms) in zip(names, groups.items(), strict=True) for m in ms}
+        # output order must follow the requested measure order (= result column metadata)
+        measure_cols = [f"{owner[m.name]}.{m.name}" for m in measures]
         if dim_aliases:
             dim_list = ", ".join(dim_aliases)
             keys = "\nUNION\n".join(f"SELECT {dim_list} FROM {n}" for n in names)

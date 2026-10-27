@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
 
+from app.auth.deps import get_current_user
+from app.models import User
 from app.semantic.catalog import SemanticCatalog
 from app.semantic.state import get_catalog
 
@@ -14,6 +16,7 @@ router = APIRouter(prefix="/api", tags=["metadata"])
 def metadata(
     include_values: bool = Query(True, description="Include allowed values per dimension"),
     catalog: SemanticCatalog = Depends(get_catalog),
+    _: User = Depends(get_current_user),
 ) -> dict:
     """Return the semantic layer as business users see it."""
     return catalog.metadata(include_values=include_values)

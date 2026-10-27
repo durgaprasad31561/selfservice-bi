@@ -124,6 +124,39 @@ class QueryService:
             log.exception("unexpected error answering %r", question)
             return self._error(trace, "Something went wrong while answering this question.")
 
+    def answer_plan(self, question: str, plan: QueryPlan) -> QueryResponse:
+        """Answer from a saved semantic plan (dashboards, overview) — no LLM call."""
+        t = _Trace((question or "").strip() or "Saved question")
+        t.plan = plan
+        t.assumptions += plan.assumptions
+        t.step("understanding", detail="saved plan")
+        try:
+            if not plan.can_answer:
+                return self._refuse(t, plan.reason or "The data cannot answer this question.")
+            return self._semantic(t, plan)
+        except QueryExecutionError as exc:
+            t.step("running", "failed", exc.code)
+            return self._error(t, exc.message)
+        except Exception:  # noqa: BLE001
+            log.exception("unexpected error running saved plan for %r", question)
+            return self._error(t, "Something went wrong while running this saved question.")
+
+    def answer_sql(self, question: str, sql: str) -> QueryResponse:
+        """Re-run saved custom SQL; it is validated again before execution — no LLM call."""
+        t = _Trace((question or "").strip() or "Saved question")
+        t.downgrades.append("a custom query was needed (not built from the semantic layer)")
+        t.step("understanding", detail="saved custom query")
+        t.step("generating_sql", "skipped")
+        try:
+            run = self.runner.run_untrusted(sql)
+        except UnsafeSQLError as exc:
+            t.step("validating", "failed", exc.validation.message)
+            return self._refuse(t, "The saved query no longer passes the safety checks.", sql=sql)
+        except QueryExecutionError as exc:
+            t.step("running", "failed", exc.code)
+            return self._error(t, exc.message)
+        return self._custom_response(t, run)
+
     # ============================================================== pipeline
 
     def _answer(self, t: _Trace) -> QueryResponse:
@@ -256,9 +289,12 @@ class QueryService:
             )
             for c in compiled.columns
         ]
+        index = {name: pos for pos, name in enumerate(run.result.columns)}
+        missing = [c.name for c in columns if c.name not in index]
+        if missing:  # never guess which value belongs to which column
+            raise RuntimeError(f"result columns {missing} missing from query output")
         data = [
-            {c.name: to_json_value(v) for c, v in zip(columns, row, strict=True)}
-            for row in run.result.rows
+            {c.name: to_json_value(row[index[c.name]]) for c in columns} for row in run.result.rows
         ]
         additive = {m: self.model.measure(m).type in ("sum", "count") for m in compiled.measures}
         chart = select_chart(t.question, columns, data, additive)
@@ -304,6 +340,9 @@ class QueryService:
             t.downgrades.append("the custom query needed a correction")
         t.assumptions += run.generated.assumptions if run.generated else []
         t.step("generating_sql", detail="custom SQL (fallback)")
+        return self._custom_response(t, run)
+
+    def _custom_response(self, t: _Trace, run: SQLRun) -> QueryResponse:
         t.step("validating", detail=", ".join(run.validation.tables))
         t.step("running", detail=f"{run.result.row_count} rows in {run.result.execution_ms} ms")
         check = check_generic_result(

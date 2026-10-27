@@ -66,6 +66,19 @@ class SafeSQLRunner:
         result = self.executor.run(validation.sql, compiled.params)
         return SQLRun(validation.sql, compiled.display_sql, compiled.params, validation, result)
 
+    def run_untrusted(self, sql: str) -> SQLRun:
+        """Validate and run SQL from outside the compiler (e.g. a saved custom query)."""
+        validation = self._check(sql, allow_parameters=False)
+        if not validation.ok:
+            raise UnsafeSQLError(validation, sql)
+        result = self.executor.run(validation.sql)
+        notes = (
+            [f"Results were limited to {validation.limit} rows."]
+            if validation.limit_enforced
+            else []
+        )
+        return SQLRun(validation.sql, sql, {}, validation, result, notes=notes)
+
     def validate_generated(
         self, question: str, generator: SQLGenerator
     ) -> tuple[GeneratedSQL, ValidationResult | None, bool]:

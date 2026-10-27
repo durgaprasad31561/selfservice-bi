@@ -27,8 +27,10 @@ def main() -> int:
     if args.json:
         print(json.dumps(resp.model_dump(mode="json"), indent=2, ensure_ascii=False))
         return 0
-    print(f"[{resp.status} | confidence {resp.confidence} | {resp.execution_ms} ms | "
-          f"model {resp.llm_model}]")
+    print(
+        f"[{resp.status} | confidence {resp.confidence} | {resp.execution_ms} ms | "
+        f"model {resp.llm_model}]"
+    )
     print(resp.answer_text)
     if resp.reason and resp.status != "answered":
         print("Reason:", resp.reason)

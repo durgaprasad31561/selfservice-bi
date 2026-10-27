@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from app.schemas.plan import QueryPlan, TimeRange
-from app.semantic.catalog import DataCoverage, SemanticCatalog
+from app.semantic.catalog import DataCoverage, SemanticCatalog, normalize
 
 
 @dataclass
@@ -58,7 +58,11 @@ def resolve_filters(plan: QueryPlan, catalog: SemanticCatalog) -> FilterResoluti
             keys.append(match.key)  # type: ignore[arg-type]
             if match.method == "fuzzy":
                 notes.append(f"Matched '{raw}' to {dim.label} '{match.display}'.")
-            elif match.method == "alias" and str(raw).strip().upper() != str(match.key):
+            elif (
+                match.method == "alias"
+                and str(raw).strip().upper() != str(match.key)
+                and normalize(raw) != normalize(match.display or "")
+            ):
                 notes.append(f"'{raw}' interpreted as {dim.label} '{match.display}'.")
         if keys:
             value = (
