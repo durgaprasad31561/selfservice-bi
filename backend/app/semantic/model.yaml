@@ -1,0 +1,727 @@
+# =============================================================================
+# Semantic layer — Olist Brazilian E-Commerce
+#
+# THE single place where business definitions live. The compiler turns a
+# semantic query plan into SQL using only what is declared here; the LLM only
+# ever sees these business names, never raw table design.
+#
+#   sources       analytics tables, their grain and the columns users may touch
+#   relationships the only joins allowed (used by the SQL validator in Mode B)
+#   filters       named, reusable business filters (e.g. what counts as revenue)
+#   measures      metrics; each may be computable on one or more sources
+#   dimensions    ways to slice; each maps to a column per source
+#   unsupported   concepts the data cannot answer, with the reason
+# =============================================================================
+
+version: 1
+name: Olist Brazilian E-Commerce
+description: >
+  Orders placed on the Olist marketplace in Brazil between September 2016 and
+  October 2018: orders, items, payments, reviews, customers, sellers and products.
+currency: BRL
+country: Brazil
+default_time_dimension: order_date
+
+# -----------------------------------------------------------------------------
+# Sources
+# -----------------------------------------------------------------------------
+sources:
+  fact_orders:
+    table: analytics.fact_orders
+    grain: one row per order
+    description: >
+      Orders with revenue (sum of the order's payments), item and freight totals,
+      delivery timing, average review score and customer location.
+    time_column: purchase_date
+    columns:
+      order_id: Order identifier
+      customer_unique_id: Real customer (person) identifier
+      customer_lifetime_orders: Number of orders this customer placed over the whole data period
+      customer_zip_code_prefix: Customer zip code prefix (5 digits)
+      customer_city: Customer city, lowercase without accents (e.g. 'sao paulo')
+      customer_state: Customer state code (e.g. 'SP')
+      customer_state_name: Customer state full name (e.g. 'São Paulo')
+      customer_region: Customer region of Brazil (North, Northeast, Center-West, Southeast, South)
+      order_status: Order status (delivered, shipped, canceled, unavailable, invoiced, processing, created, approved)
+      purchase_timestamp: Date and time the order was placed
+      purchase_date: Date the order was placed
+      purchase_month: First day of the month the order was placed
+      purchase_year: Year the order was placed
+      order_revenue: Total paid for the order in BRL (sum of its payments)
+      items_amount: Sum of item prices in the order (BRL)
+      freight_amount: Sum of freight charges in the order (BRL)
+      item_count: Number of items in the order
+      seller_count: Number of distinct sellers in the order
+      primary_payment_type: Payment type code that paid the largest share of the order
+      primary_payment_type_label: Payment type label that paid the largest share of the order
+      installments: Highest number of installments among the order's payments
+      payment_count: Number of payments for the order
+      approved_at: When the payment was approved
+      carrier_date: When the order was handed to the carrier
+      delivered_date: When the order was delivered to the customer
+      estimated_date: Estimated delivery date promised at purchase
+      delivery_days: Days from purchase to delivery (delivered orders only)
+      is_late: True if delivered after the estimated date
+      delivery_status: "'On Time' or 'Late' (delivered orders only)"
+      review_score: Average review score (1-5) for the order
+      review_count: Number of reviews for the order
+
+  fact_order_items:
+    table: analytics.fact_order_items
+    grain: one row per order item
+    description: >
+      Individual products sold, with price, freight, English product category,
+      seller location and the order's status, date and customer location.
+    time_column: purchase_date
+    columns:
+      order_id: Order identifier
+      order_item_id: Item sequence number within the order
+      product_id: Product identifier
+      seller_id: Seller identifier
+      category_name: Product category (original Portuguese key)
+      category_english: Product category (English key)
+      category_label: Product category display name (e.g. 'Health & Beauty')
+      seller_city: Seller city, lowercase without accents
+      seller_state: Seller state code
+      seller_state_name: Seller state full name
+      customer_unique_id: Real customer (person) identifier
+      customer_city: Customer city, lowercase without accents
+      customer_state: Customer state code
+      customer_state_name: Customer state full name
+      customer_region: Customer region of Brazil
+      order_status: Status of the order the item belongs to
+      purchase_timestamp: Date and time the order was placed
+      purchase_date: Date the order was placed
+      purchase_month: First day of the month the order was placed
+      purchase_year: Year the order was placed
+      shipping_limit_date: Seller shipping deadline
+      price: Item price in BRL
+      freight_value: Freight charged for the item in BRL
+      delivery_days: Days from purchase to delivery of the order
+      is_late: True if the order was delivered after the estimated date
+      delivery_status: "'On Time' or 'Late' for the order"
+      review_score: Average review score of the order
+
+  fact_payments:
+    table: analytics.fact_payments
+    grain: one row per payment
+    description: Payments made for orders, with payment type and installments.
+    time_column: purchase_date
+    columns:
+      order_id: Order identifier
+      payment_sequential: Payment sequence number within the order
+      payment_type: Payment type code (credit_card, boleto, voucher, debit_card, not_defined)
+      payment_type_label: Payment type label (Credit Card, Boleto, Voucher, Debit Card, Not Defined)
+      installments: Number of installments for this payment
+      payment_value: Amount paid in BRL
+      customer_unique_id: Real customer (person) identifier
+      customer_city: Customer city, lowercase without accents
+      customer_state: Customer state code
+      customer_state_name: Customer state full name
+      customer_region: Customer region of Brazil
+      order_status: Status of the paid order
+      purchase_timestamp: Date and time the order was placed
+      purchase_date: Date the order was placed
+      purchase_month: First day of the month the order was placed
+      purchase_year: Year the order was placed
+
+  dim_customers:
+    table: analytics.dim_customers
+    grain: one row per real customer (customer_unique_id)
+    description: Customers with location from their most recent order.
+    columns:
+      customer_unique_id: Real customer identifier
+      customer_zip_code_prefix: Zip code prefix
+      customer_city: City, lowercase without accents
+      customer_state: State code
+      customer_state_name: State full name
+      customer_region: Region of Brazil
+      first_order_date: Date of first order
+      last_order_date: Date of last order
+      order_count: Number of orders placed
+
+  dim_products:
+    table: analytics.dim_products
+    grain: one row per product
+    description: Products with English category and physical attributes.
+    columns:
+      product_id: Product identifier
+      category_name: Category (Portuguese key)
+      category_english: Category (English key)
+      category_label: Category display name
+      product_name_length: Characters in the product name
+      product_description_length: Characters in the product description
+      product_photos_qty: Number of product photos
+      product_weight_g: Weight in grams
+      product_length_cm: Length in cm
+      product_height_cm: Height in cm
+      product_width_cm: Width in cm
+
+  dim_sellers:
+    table: analytics.dim_sellers
+    grain: one row per seller
+    description: Sellers and their location.
+    columns:
+      seller_id: Seller identifier
+      seller_zip_code_prefix: Zip code prefix
+      seller_city: City, lowercase without accents
+      seller_state: State code
+      seller_state_name: State full name
+      seller_region: Region of Brazil
+
+  dim_states:
+    table: analytics.dim_states
+    grain: one row per Brazilian state
+    description: The 27 Brazilian federative units.
+    columns:
+      state_code: Two-letter code (e.g. 'SP')
+      state_name: Full name (e.g. 'São Paulo')
+      region: Region of Brazil
+
+  dim_date:
+    table: analytics.dim_date
+    grain: one row per calendar day (2016-01-01 to 2018-12-31)
+    description: Calendar with order counts per day.
+    columns:
+      date_day: Calendar date
+      year: Year
+      quarter: Quarter (1-4)
+      month: Month number (1-12)
+      month_name: Month name
+      month_start: First day of the month
+      quarter_start: First day of the quarter
+      week_start: Monday of the ISO week
+      iso_day_of_week: Day of week (1 = Monday .. 7 = Sunday)
+      day_name: Day name
+      is_weekend: True on Saturday and Sunday
+      order_count: Orders placed that day
+      has_orders: True if any order was placed that day
+
+  dim_geo:
+    table: analytics.dim_geo
+    grain: one row per zip code prefix
+    description: Average latitude/longitude per zip code prefix.
+    columns:
+      zip_code_prefix: Zip code prefix
+      lat: Latitude
+      lng: Longitude
+      city: City, lowercase without accents
+      state: State code
+      state_name: State full name
+
+# -----------------------------------------------------------------------------
+# Relationships — the only joins permitted
+# -----------------------------------------------------------------------------
+relationships:
+  - {from: fact_order_items.order_id, to: fact_orders.order_id, type: many_to_one}
+  - {from: fact_payments.order_id, to: fact_orders.order_id, type: many_to_one}
+  - {from: fact_order_items.product_id, to: dim_products.product_id, type: many_to_one}
+  - {from: fact_order_items.seller_id, to: dim_sellers.seller_id, type: many_to_one}
+  - {from: fact_orders.customer_unique_id, to: dim_customers.customer_unique_id, type: many_to_one}
+  - {from: fact_order_items.customer_unique_id, to: dim_customers.customer_unique_id, type: many_to_one}
+  - {from: fact_payments.customer_unique_id, to: dim_customers.customer_unique_id, type: many_to_one}
+  - {from: fact_orders.customer_state, to: dim_states.state_code, type: many_to_one}
+  - {from: fact_order_items.customer_state, to: dim_states.state_code, type: many_to_one}
+  - {from: fact_order_items.seller_state, to: dim_states.state_code, type: many_to_one}
+  - {from: fact_payments.customer_state, to: dim_states.state_code, type: many_to_one}
+  - {from: dim_customers.customer_state, to: dim_states.state_code, type: many_to_one}
+  - {from: dim_sellers.seller_state, to: dim_states.state_code, type: many_to_one}
+  - {from: fact_orders.purchase_date, to: dim_date.date_day, type: many_to_one}
+  - {from: fact_order_items.purchase_date, to: dim_date.date_day, type: many_to_one}
+  - {from: fact_payments.purchase_date, to: dim_date.date_day, type: many_to_one}
+  - {from: fact_orders.customer_zip_code_prefix, to: dim_geo.zip_code_prefix, type: many_to_one}
+  - {from: dim_customers.customer_zip_code_prefix, to: dim_geo.zip_code_prefix, type: many_to_one}
+  - {from: dim_sellers.seller_zip_code_prefix, to: dim_geo.zip_code_prefix, type: many_to_one}
+
+# -----------------------------------------------------------------------------
+# Named business filters
+# -----------------------------------------------------------------------------
+filters:
+  valid_orders:
+    description: Excludes canceled and unavailable orders.
+    sql: "order_status NOT IN ('canceled', 'unavailable')"
+  delivered_orders:
+    description: Only orders that have been delivered to the customer (with a delivery date).
+    sql: "delivered_date IS NOT NULL"
+  delivered_items:
+    description: Only items whose order has been delivered to the customer.
+    sql: "delivery_days IS NOT NULL"
+
+# -----------------------------------------------------------------------------
+# Measures
+#   sources: SQL aggregate per source, in order of preference. The compiler
+#            uses the first source that supports every requested dimension
+#            and filter; if none does, the combination is refused.
+#   bounds:  [min, max] a correct result must fall in (null = unbounded)
+# -----------------------------------------------------------------------------
+measures:
+  - name: total_sales
+    label: Total Sales
+    description: >
+      Revenue in BRL: the sum of all payments for orders, excluding canceled and
+      unavailable orders. Counted once per order (payments are not multiplied by items).
+    type: sum
+    format: currency
+    synonyms: [sales, revenue, total revenue, total sales, gmv, turnover, sales value, income, receita, faturamento, money made, earned]
+    sources:
+      fact_orders: SUM(order_revenue)
+      fact_payments: SUM(payment_value)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: order_count
+    label: Order Count
+    description: Number of orders placed, in any status (including canceled).
+    type: count
+    format: integer
+    synonyms: [orders, number of orders, order volume, how many orders, total orders, purchases, pedidos]
+    sources:
+      fact_orders: COUNT(*)
+      fact_order_items: COUNT(DISTINCT order_id)
+      fact_payments: COUNT(DISTINCT order_id)
+    default_filters: []
+    bounds: [0, null]
+
+  - name: average_order_value
+    label: Average Order Value
+    description: >
+      Total Sales divided by the number of orders, excluding canceled and unavailable
+      orders. Each order counted once.
+    type: ratio
+    format: currency
+    synonyms: [aov, avg order value, average ticket, ticket medio, average basket, average spend per order, average order size]
+    sources:
+      fact_orders: SUM(order_revenue) / NULLIF(COUNT(*), 0)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: items_sold
+    label: Items Sold
+    description: Number of product units sold (order items), excluding canceled and unavailable orders.
+    type: count
+    format: integer
+    synonyms: [items, units sold, quantity sold, products sold, number of items, units, volume sold]
+    sources:
+      fact_order_items: COUNT(*)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: product_sales
+    label: Product Sales
+    description: >
+      Sum of item prices in BRL (excludes freight), excluding canceled and unavailable
+      orders. Use this to compare sales by product category or seller.
+    type: sum
+    format: currency
+    synonyms: [product revenue, item sales, merchandise sales, category sales, sales by category, item revenue, product sales value, seller sales]
+    sources:
+      fact_order_items: SUM(price)
+      fact_orders: SUM(items_amount)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: shipping_cost
+    label: Shipping Cost
+    description: Sum of freight charged to customers in BRL, excluding canceled and unavailable orders.
+    type: sum
+    format: currency
+    synonyms: [freight, freight value, shipping, shipping cost, delivery cost, frete, freight cost, shipping fees]
+    sources:
+      fact_order_items: SUM(freight_value)
+      fact_orders: SUM(freight_amount)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: average_item_price
+    label: Average Item Price
+    description: Average price of a sold item in BRL, excluding canceled and unavailable orders.
+    type: average
+    format: currency
+    synonyms: [avg price, average price, mean price, average product price, average selling price]
+    sources:
+      fact_order_items: AVG(price)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: customer_count
+    label: Number of Customers
+    description: >
+      Distinct real customers (customer_unique_id) who placed at least one order.
+      One person with several orders counts once.
+    type: count_distinct
+    format: integer
+    synonyms: [customers, number of customers, unique customers, buyers, shoppers, clients, how many customers, customer base]
+    sources:
+      fact_orders: COUNT(DISTINCT customer_unique_id)
+      fact_order_items: COUNT(DISTINCT customer_unique_id)
+      fact_payments: COUNT(DISTINCT customer_unique_id)
+    default_filters: []
+    bounds: [0, null]
+
+  - name: repeat_customers
+    label: Repeat Customers
+    description: >
+      Distinct customers who placed more than one order over the whole data period
+      (Sep 2016 - Oct 2018), counted within the selected slice.
+    type: count_distinct
+    format: integer
+    synonyms: [returning customers, repeat buyers, loyal customers, customers with more than one order, repeat purchasers]
+    sources:
+      fact_orders: COUNT(DISTINCT CASE WHEN customer_lifetime_orders > 1 THEN customer_unique_id END)
+    default_filters: []
+    bounds: [0, null]
+
+  - name: repeat_customer_rate
+    label: Repeat Customer Rate
+    description: Repeat Customers as a percentage of Number of Customers.
+    type: ratio
+    format: percent
+    synonyms: [repeat rate, retention rate, repeat purchase rate, returning customer rate, percentage of repeat customers]
+    sources:
+      fact_orders: >-
+        100.0 * COUNT(DISTINCT CASE WHEN customer_lifetime_orders > 1 THEN customer_unique_id END)
+        / NULLIF(COUNT(DISTINCT customer_unique_id), 0)
+    default_filters: []
+    bounds: [0, 100]
+
+  - name: seller_count
+    label: Number of Sellers
+    description: Distinct sellers with at least one item sold.
+    type: count_distinct
+    format: integer
+    synonyms: [sellers, number of sellers, merchants, vendors, active sellers, how many sellers, stores]
+    sources:
+      fact_order_items: COUNT(DISTINCT seller_id)
+    default_filters: []
+    bounds: [0, null]
+
+  - name: average_rating
+    label: Average Rating
+    description: >
+      Average customer review score (1 to 5). By order on order-level questions; by
+      product category or seller it is the average over the items sold.
+    type: average
+    format: rating
+    synonyms: [rating, review score, average review, avg rating, customer satisfaction, satisfaction, stars, average score, csat]
+    sources:
+      fact_orders: AVG(review_score)
+      fact_order_items: AVG(review_score)
+    default_filters: []
+    bounds: [1, 5]
+
+  - name: review_count
+    label: Review Count
+    description: Number of customer reviews submitted.
+    type: sum
+    format: integer
+    synonyms: [reviews, number of reviews, how many reviews, ratings count, feedback count]
+    sources:
+      fact_orders: SUM(review_count)
+    default_filters: []
+    bounds: [0, null]
+
+  - name: average_delivery_days
+    label: Average Delivery Days
+    description: Average number of days from purchase to delivery, for delivered orders only.
+    type: average
+    format: days
+    synonyms: [delivery time, average delivery time, days to deliver, shipping time, lead time, how long delivery takes, delivery speed]
+    sources:
+      fact_orders: AVG(delivery_days)
+      fact_order_items: AVG(delivery_days)
+    default_filters_by_source:
+      fact_orders: [delivered_orders]
+      fact_order_items: [delivered_items]
+    bounds: [0, null]
+
+  - name: late_delivery_rate
+    label: Late Delivery Rate
+    description: >
+      Percentage of delivered orders that arrived after the estimated delivery date.
+      Each order counted once, also when sliced by category or seller.
+    type: ratio
+    format: percent
+    synonyms: [late deliveries, late rate, delayed deliveries, percentage late, delay rate, on-time performance, late delivery percentage, late orders]
+    sources:
+      fact_orders: >-
+        100.0 * COUNT(*) FILTER (WHERE is_late)
+        / NULLIF(COUNT(*) FILTER (WHERE is_late IS NOT NULL), 0)
+      fact_order_items: >-
+        100.0 * COUNT(DISTINCT order_id) FILTER (WHERE is_late)
+        / NULLIF(COUNT(DISTINCT order_id) FILTER (WHERE is_late IS NOT NULL), 0)
+    default_filters: []
+    bounds: [0, 100]
+
+  - name: cancellation_rate
+    label: Cancellation Rate
+    description: Percentage of orders with status 'canceled' out of all orders.
+    type: ratio
+    format: percent
+    synonyms: [cancel rate, canceled orders rate, cancellations, percentage canceled, order cancellation rate]
+    sources:
+      fact_orders: >-
+        100.0 * COUNT(*) FILTER (WHERE order_status = 'canceled') / NULLIF(COUNT(*), 0)
+      fact_order_items: >-
+        100.0 * COUNT(DISTINCT order_id) FILTER (WHERE order_status = 'canceled')
+        / NULLIF(COUNT(DISTINCT order_id), 0)
+    default_filters: []
+    bounds: [0, 100]
+
+  - name: average_installments
+    label: Average Installments
+    description: Average number of installments per payment.
+    type: average
+    format: decimal
+    synonyms: [installments, avg installments, number of installments, parcelas, payment installments]
+    sources:
+      fact_payments: AVG(installments)
+    default_filters: []
+    bounds: [0, null]
+
+  - name: payment_amount
+    label: Payment Amount
+    description: >
+      Sum of payments in BRL, excluding canceled and unavailable orders. Use with
+      Payment Type to see how much was paid with each method.
+    type: sum
+    format: currency
+    synonyms: [payment value, amount paid, payments, payment total, payment amount by type, paid amount]
+    sources:
+      fact_payments: SUM(payment_value)
+    default_filters: [valid_orders]
+    bounds: [0, null]
+
+  - name: payment_count
+    label: Number of Payments
+    description: Number of individual payment transactions, in any order status.
+    type: count
+    format: integer
+    synonyms: [payment transactions, number of payments, transactions, payments count]
+    sources:
+      fact_payments: COUNT(*)
+    default_filters: []
+    bounds: [0, null]
+
+# -----------------------------------------------------------------------------
+# Dimensions
+#   columns.<source>.key      expression used for filters (and grouping)
+#   columns.<source>.display  expression shown to users (defaults to key)
+#   values_from               where allowed values are read at startup
+#   matching                  how user-typed values are resolved:
+#                             state (code/name, accent-insensitive), fuzzy, exact
+# -----------------------------------------------------------------------------
+dimensions:
+  - name: order_date
+    label: Order Date
+    description: Date the order was placed (purchase date).
+    type: time
+    grains: [day, week, month, quarter, year]
+    default_grain: month
+    synonyms: [date, purchase date, order date, time, period, when, month, year, quarter, week, day, trend, over time, monthly, yearly, daily, weekly, quarterly]
+    columns:
+      fact_orders: {key: purchase_date}
+      fact_order_items: {key: purchase_date}
+      fact_payments: {key: purchase_date}
+
+  - name: customer_state
+    label: Customer State
+    description: Brazilian state of the customer (two-letter code or full name, e.g. SP / São Paulo).
+    type: categorical
+    matching: state
+    synonyms: [state, customer state, uf, estado, by state, states, province]
+    columns:
+      fact_orders: {key: customer_state, display: customer_state_name}
+      fact_order_items: {key: customer_state, display: customer_state_name}
+      fact_payments: {key: customer_state, display: customer_state_name}
+    values_from: {source: dim_states, key: state_code, display: state_name}
+
+  - name: customer_region
+    label: Customer Region
+    description: Region of Brazil of the customer (North, Northeast, Center-West, Southeast, South).
+    type: categorical
+    matching: fuzzy
+    synonyms: [region, customer region, regiao, area, macro region]
+    columns:
+      fact_orders: {key: customer_region}
+      fact_order_items: {key: customer_region}
+      fact_payments: {key: customer_region}
+    values_from: {source: dim_states, key: region}
+
+  - name: customer_city
+    label: Customer City
+    description: City of the customer (accents are ignored, e.g. 'São Paulo' = 'sao paulo').
+    type: categorical
+    matching: fuzzy
+    synonyms: [city, customer city, cidade, town, by city, cities]
+    columns:
+      fact_orders: {key: customer_city, display: INITCAP(customer_city)}
+      fact_order_items: {key: customer_city, display: INITCAP(customer_city)}
+      fact_payments: {key: customer_city, display: INITCAP(customer_city)}
+    values_from: {source: fact_orders, key: customer_city}
+
+  - name: seller_state
+    label: Seller State
+    description: Brazilian state where the seller is located.
+    type: categorical
+    matching: state
+    synonyms: [seller state, seller location, sellers state, merchant state, vendor state, shipped from state]
+    columns:
+      fact_order_items: {key: seller_state, display: seller_state_name}
+    values_from: {source: dim_states, key: state_code, display: state_name}
+
+  - name: seller_city
+    label: Seller City
+    description: City where the seller is located.
+    type: categorical
+    matching: fuzzy
+    synonyms: [seller city, merchant city, vendor city, shipped from city]
+    columns:
+      fact_order_items: {key: seller_city, display: INITCAP(seller_city)}
+    values_from: {source: fact_order_items, key: seller_city}
+
+  - name: product_category
+    label: Product Category
+    description: English product category (e.g. 'Health & Beauty'). Only item-level measures can be split by category.
+    type: categorical
+    matching: fuzzy
+    synonyms: [category, product category, categories, product type, department, segment, by category, product line]
+    columns:
+      fact_order_items: {key: category_label}
+    values_from: {source: fact_order_items, key: category_label, aliases: [category_english, category_name]}
+
+  - name: order_status
+    label: Order Status
+    description: Status of the order (Delivered, Shipped, Canceled, Unavailable, Invoiced, Processing, Created, Approved).
+    type: categorical
+    matching: fuzzy
+    synonyms: [status, order status, state of order, fulfilment status]
+    columns:
+      fact_orders: {key: order_status, display: INITCAP(order_status)}
+      fact_order_items: {key: order_status, display: INITCAP(order_status)}
+      fact_payments: {key: order_status, display: INITCAP(order_status)}
+    values_from: {source: fact_orders, key: order_status}
+
+  - name: payment_type
+    label: Payment Type
+    description: >
+      Payment method (Credit Card, Boleto, Voucher, Debit Card). For order-level
+      measures this is the method that paid the largest share of the order.
+    type: categorical
+    matching: fuzzy
+    exclude_null: true
+    synonyms: [payment method, payment type, how customers pay, pay method, forma de pagamento, payment mode, by payment]
+    columns:
+      fact_payments: {key: payment_type_label}
+      fact_orders: {key: primary_payment_type_label}
+    values_from: {source: fact_payments, key: payment_type_label}
+
+  - name: rating
+    label: Rating
+    description: Customer review score from 1 to 5 stars (rounded for orders with several reviews).
+    type: categorical
+    matching: exact
+    value_type: integer
+    exclude_null: true
+    synonyms: [rating, stars, review score, score, star rating, rating distribution]
+    columns:
+      fact_orders: {key: "ROUND(review_score)::int"}
+      fact_order_items: {key: "ROUND(review_score)::int"}
+    values_from: {source: fact_orders, key: "ROUND(review_score)::int"}
+
+  - name: delivery_status
+    label: Delivery Status
+    description: Whether a delivered order arrived On Time or Late versus the estimated date.
+    type: categorical
+    matching: fuzzy
+    exclude_null: true
+    synonyms: [delivery status, on time, late, delivery performance, punctuality]
+    columns:
+      fact_orders: {key: delivery_status}
+      fact_order_items: {key: delivery_status}
+    values_from: {source: fact_orders, key: delivery_status}
+
+# -----------------------------------------------------------------------------
+# Concepts the data cannot answer
+#   keywords   matched as whole words/phrases, case- and accent-insensitive
+#   except     phrases that make a keyword legitimate (e.g. "shipping cost")
+# -----------------------------------------------------------------------------
+unsupported_concepts:
+  - name: profit
+    keywords: [profit, profits, profitability, net income, earnings, ebitda, net revenue, lucro]
+    reason: The dataset contains sale prices and payments but no product or operating costs, so profit cannot be calculated.
+    suggestion: Ask about Total Sales or Product Sales instead.
+
+  - name: cost
+    keywords: [cost, costs, cogs, cost of goods, unit cost, purchase cost, expenses, operating expenses]
+    except: [shipping cost, shipping costs, freight cost, freight costs, delivery cost, delivery costs]
+    reason: The dataset has no cost data (only freight charged to customers).
+    suggestion: Ask about Shipping Cost (freight charged to customers) instead.
+
+  - name: margin
+    keywords: [margin, margins, markup, gross margin, profit margin]
+    reason: Margins need product costs, which the dataset does not contain.
+    suggestion: Ask about Total Sales or Average Item Price instead.
+
+  - name: inventory
+    keywords: [inventory, stock, stock level, stock levels, in stock, out of stock, warehouse, stockout]
+    reason: The dataset records sales only; it has no inventory or stock levels.
+    suggestion: Ask about Items Sold by Product Category instead.
+
+  - name: marketing
+    keywords: [marketing, advertising, ad spend, ads, campaign, campaigns, roi, roas, cac, customer acquisition cost, promotion spend]
+    reason: The dataset has no marketing, advertising or campaign data.
+    suggestion: Ask about Number of Customers or Total Sales over time instead.
+
+  - name: web_analytics
+    keywords: [traffic, website visits, visitors, sessions, page views, pageviews, conversion rate, bounce rate, clicks, click through]
+    reason: The dataset has no website or app traffic data.
+    suggestion: Ask about Order Count over time instead.
+
+  - name: employees
+    keywords: [employee, employees, staff, salary, salaries, payroll, headcount, workforce]
+    reason: The dataset has no employee or HR data.
+
+  - name: returns
+    keywords: [return, returns, returned, return rate, refund, refunds, refunded, chargeback, chargebacks]
+    reason: The dataset has no product return or refund records.
+    suggestion: Ask about Cancellation Rate instead.
+
+  - name: demographics
+    keywords: [age, ages, gender, male customers, female customers, income level, demographics, customer age]
+    reason: The dataset has no customer demographic data (only location).
+    suggestion: Ask about Number of Customers by Customer State instead.
+
+  - name: product_details
+    keywords: [brand, brands, product name, product names, sku, model name]
+    reason: Products are identified only by ID and category; there are no product names or brands.
+    suggestion: Ask about Product Category instead.
+
+  - name: discounts
+    keywords: [discount, discounts, coupon, coupons, promo code]
+    reason: The dataset has no discount or coupon data (vouchers appear only as a payment type).
+    suggestion: Ask about Payment Amount by Payment Type instead.
+
+  - name: taxes
+    keywords: [tax, taxes, icms, vat, gst]
+    reason: The dataset has no tax data.
+
+  - name: forecast
+    keywords: [forecast, forecasts, predict, prediction, projection, next year, next month, next quarter, future]
+    reason: The dataset contains historical orders only (Sep 2016 - Oct 2018); it cannot forecast.
+    suggestion: Ask about historical trends, e.g. monthly Total Sales in 2018.
+
+  - name: other_currency
+    keywords: [usd, dollar, dollars, us dollars, euro, euros, eur, rupee, rupees, inr, pound, pounds, gbp, yen]
+    reason: All amounts are in Brazilian Real (BRL); the dataset has no exchange rates.
+    suggestion: Ask for the amount in BRL (R$).
+
+  - name: other_country
+    keywords: [india, indian, hyderabad, mumbai, delhi, bangalore, bengaluru, chennai, kolkata, pune,
+               usa, united states, america, american, new york, california, texas, chicago,
+               uk, united kingdom, england, london, europe, european, germany, berlin, france, paris,
+               spain, madrid, italy, rome, portugal, lisbon, china, beijing, shanghai, japan, tokyo,
+               canada, toronto, mexico, argentina, buenos aires, chile, colombia, peru, australia,
+               sydney, africa, nigeria, russia, dubai, uae, singapore, worldwide, international]
+    except: [south america, latin america]
+    reason: The dataset only covers orders from customers and sellers in Brazil.
+    suggestion: Ask about a Brazilian state (e.g. São Paulo, Rio de Janeiro) or city.

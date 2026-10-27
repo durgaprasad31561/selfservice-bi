@@ -68,6 +68,7 @@ SELECT
     o.order_id,
     o.customer_id,
     c.customer_unique_id,
+    COUNT(*) OVER (PARTITION BY c.customer_unique_id)::int AS customer_lifetime_orders,
     c.customer_zip_code_prefix,
     c.customer_city,
     c.customer_state,
@@ -146,6 +147,7 @@ SELECT
     fo.customer_city,
     fo.customer_state,
     fo.customer_state_name,
+    fo.customer_region,
     fo.order_status,
     fo.purchase_timestamp,
     fo.purchase_date,
@@ -153,7 +155,12 @@ SELECT
     fo.purchase_year,
     oi.shipping_limit_date,
     oi.price,
-    oi.freight_value
+    oi.freight_value,
+    -- order-level attributes repeated on each item (for per-category / per-seller analysis)
+    fo.delivery_days,
+    fo.is_late,
+    fo.delivery_status,
+    fo.review_score
 FROM raw.order_items oi
 JOIN analytics.fact_orders fo    ON fo.order_id = oi.order_id
 JOIN raw.products p              ON p.product_id = oi.product_id
@@ -190,6 +197,7 @@ SELECT
     fo.customer_city,
     fo.customer_state,
     fo.customer_state_name,
+    fo.customer_region,
     fo.order_status,
     fo.purchase_timestamp,
     fo.purchase_date,
