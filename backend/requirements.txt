@@ -1,0 +1,38 @@
+# Web / API
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.32
+slowapi==0.1.10
+
+# Config / validation
+pydantic==2.14.1
+pydantic-settings==2.16.1
+PyYAML==6.0.3
+
+# Database
+SQLAlchemy==2.1.6
+psycopg[binary]==3.3.6
+duckdb==2.0.0
+pandas==3.1.0
+
+# Auth
+python-jose[cryptography]==3.5.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1  # newer bcrypt breaks passlib's version detection
+
+# AI
+langchain==1.4.7
+langchain-core==1.7.0
+langchain-google-genai==4.4.2
+langchain-openai==1.7.3
+
+# SQL safety and matching
+sqlglot==30.25.0
+rapidfuzz==3.14.6
+Unidecode==1.4.0
+
+# Testing / quality
+pytest==9.1.1
+httpx==0.28.1
+ruff==0.17.3
+black==26.10.1
