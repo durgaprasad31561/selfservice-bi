@@ -12,10 +12,11 @@ from datetime import date
 
 from app.semantic.catalog import SemanticCatalog
 
-PROMPT_VERSION = "planner-v4"
+PROMPT_VERSION = "planner-v5"
 
-#: Dimensions whose full value list is short enough to put in the prompt.
-MAX_LISTED_VALUES = 30
+#: Dimensions whose full value list is short enough to put in the prompt (all 74 product
+#: categories fit; cities and seller IDs are sampled or omitted).
+MAX_LISTED_VALUES = 80
 VALUE_SAMPLE = 25
 MAX_SYNONYMS = 6
 
@@ -275,7 +276,10 @@ customer_state. "Sellers in <place>" means seller_state/seller_city; rankings of
 sellers ("top sellers") use the seller dimension.
 9. Ask for clarification (clarification_needed + 2-3 clarification_options written as \
 complete questions) only when two readings would give materially different answers and \
-there is no sensible default. "Sales" alone means total_sales; "orders" means order_count.
+there is no sensible default. "Sales" alone means total_sales; "orders" means order_count. \
+Vague success words with no measure ("performance", "best", "doing well", "top performing") \
+need clarification with measure options. Never ask which value the user meant for a \
+filter: copy it (e.g. "toys", "electronics") and let the system match it.
 10. Set needs_custom_sql=true (can_answer stays true, measures may be empty) only when the \
 question is answerable from the described data but cannot be expressed with these measures \
 and dimensions (e.g. day of week, items per order, hour of day).
