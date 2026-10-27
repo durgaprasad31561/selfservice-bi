@@ -581,3 +581,18 @@ def test_grok_client_uses_xai_endpoint() -> None:
     assert type(chat).__name__ == "ChatOpenAI"
     assert str(chat.openai_api_base).rstrip("/") == "https://api.x.ai/v1"
     assert chat.model_name == "grok-a" and chat.temperature == 0
+
+
+def test_short_rate_limit_wait() -> None:
+    from app.nl2sql.llm import short_retry_after
+
+    tpm = RuntimeError(
+        "Error code: 429 - Rate limit reached on tokens per minute (TPM). "
+        "Please try again in 7.66s."
+    )
+    assert short_retry_after(tpm) == pytest.approx(8.16)
+    assert (
+        short_retry_after(RuntimeError("429 tokens per day (TPD). Please try again in 12m3s"))
+        is None
+    )
+    assert short_retry_after(RuntimeError("500 server error")) is None

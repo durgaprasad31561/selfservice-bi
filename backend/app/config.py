@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     reader_database_url: str = Field(..., description="bi_reader: ALL user queries (read-only)")
 
     # LLM
-    llm_provider: Literal["gemini", "openai", "grok"] = "gemini"
+    llm_provider: Literal["gemini", "openai", "grok", "groq"] = "gemini"
     gemini_api_key: str = ""
     gemini_model: str = ""
     gemini_fallback_models: str = ""
@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     xai_model: str = ""
     xai_fallback_models: str = ""
     xai_base_url: str = "https://api.x.ai/v1"
+    # Groq (groq.com, OpenAI-compatible API)
+    groq_api_key: str = ""
+    groq_model: str = ""
+    groq_fallback_models: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
     llm_timeout_seconds: float = 30.0
     llm_max_retries: int = Field(2, ge=0, le=5)
     llm_cache_ttl_seconds: int = 3600
@@ -66,6 +71,7 @@ class Settings(BaseSettings):
             "gemini": (self.gemini_model, self.gemini_fallback_models),
             "openai": (self.openai_model, self.openai_fallback_models),
             "grok": (self.xai_model, self.xai_fallback_models),
+            "groq": (self.groq_model, self.groq_fallback_models),
         }[self.llm_provider]
         names = [primary.strip()] + [m.strip() for m in fallbacks.split(",")]
         return list(dict.fromkeys(n for n in names if n))
@@ -76,12 +82,15 @@ class Settings(BaseSettings):
             "gemini": self.gemini_api_key,
             "openai": self.openai_api_key,
             "grok": self.xai_api_key,
+            "groq": self.groq_api_key,
         }[self.llm_provider]
 
     @property
     def llm_env_names(self) -> tuple[str, str]:
         """(.env key variable, .env model variable) for the configured provider."""
-        prefix = {"gemini": "GEMINI", "openai": "OPENAI", "grok": "XAI"}[self.llm_provider]
+        prefix = {"gemini": "GEMINI", "openai": "OPENAI", "grok": "XAI", "groq": "GROQ"}[
+            self.llm_provider
+        ]
         return f"{prefix}_API_KEY", f"{prefix}_MODEL"
 
     @property

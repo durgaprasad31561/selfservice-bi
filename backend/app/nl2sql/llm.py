@@ -89,7 +89,7 @@ def is_overloaded(exc: BaseException) -> bool:
     return any(marker in text for marker in _OVERLOAD_MARKERS)
 
 
-_QUOTA_MARKERS = ("RESOURCE_EXHAUSTED", "quota", "insufficient_quota")
+_QUOTA_MARKERS = ("RESOURCE_EXHAUSTED", "quota", "insufficient_quota", "per day", "(TPD)", "(RPD)")
 DEFAULT_QUOTA_COOL_DOWN = 3600.0
 
 
@@ -110,6 +110,23 @@ def quota_retry_seconds(exc: BaseException) -> float:
         h, mi, se = (float(g) if g else 0.0 for g in m.groups())
         return min(h * 3600 + mi * 60 + se, 86_400.0)
     return DEFAULT_QUOTA_COOL_DOWN
+
+
+MAX_RATE_LIMIT_WAIT = 45.0
+
+
+def short_retry_after(exc: BaseException) -> float | None:
+    """Seconds to wait for a per-minute rate limit ("try again in 7.6s"), if short enough."""
+    text = str(exc)
+    if "429" not in text and "rate limit" not in text.lower():
+        return None
+    if is_quota_exhausted(exc) and "per day" in text.lower():
+        return None
+    m = re.search(r"try again in (?:(\d+)m)?([\d.]+)s", text)
+    if not m:
+        return None
+    seconds = float(m.group(1) or 0) * 60 + float(m.group(2))
+    return seconds + 0.5 if seconds <= MAX_RATE_LIMIT_WAIT else None
 
 
 def is_transient(exc: BaseException) -> bool:
@@ -195,12 +212,13 @@ class LLMClient:
             )
         from langchain_openai import ChatOpenAI
 
-        if self.provider == "grok":
-            # xAI's API is OpenAI-compatible: same client, different endpoint and key.
+        if self.provider in ("grok", "groq"):
+            # xAI and Groq expose OpenAI-compatible APIs: same client, other endpoint/key.
+            grok = self.provider == "grok"
             return ChatOpenAI(
                 model=model,
-                api_key=s.xai_api_key,
-                base_url=s.xai_base_url,
+                api_key=s.xai_api_key if grok else s.groq_api_key,
+                base_url=s.xai_base_url if grok else s.groq_base_url,
                 temperature=0,
                 timeout=s.llm_timeout_seconds,
                 max_retries=0,
@@ -257,6 +275,11 @@ class LLMClient:
                         log.warning("quota exhausted for %s (resets in %.0f min)", model, cool / 60)
                         quota_hit = True
                         break  # retrying the same model cannot succeed
+                    wait = short_retry_after(exc)
+                    if wait is not None and attempt < self.settings.llm_max_retries:
+                        log.info("rate limited on %s, waiting %.1fs", model, wait)
+                        time.sleep(wait)
+                        continue  # same (stronger) model after the short window
                     if is_overloaded(exc) and has_fallback:
                         break  # go straight to the next model
                     if attempt < self.settings.llm_max_retries:

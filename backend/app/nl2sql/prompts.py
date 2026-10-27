@@ -12,10 +12,12 @@ from datetime import date
 
 from app.semantic.catalog import SemanticCatalog
 
-PROMPT_VERSION = "planner-v3"
+PROMPT_VERSION = "planner-v4"
 
 #: Dimensions whose full value list is short enough to put in the prompt.
-MAX_LISTED_VALUES = 80
+MAX_LISTED_VALUES = 30
+VALUE_SAMPLE = 25
+MAX_SYNONYMS = 6
 
 FEW_SHOT_EXAMPLES: list[tuple[str, dict]] = [
     (
@@ -196,35 +198,37 @@ FEW_SHOT_EXAMPLES: list[tuple[str, dict]] = [
 
 
 def _render_catalog(catalog: SemanticCatalog) -> str:
+    """Compact catalog text: every measure/dimension, short synonym lists, exceptions only."""
     model = catalog.model
-    lines = ["MEASURES (use the name in the plan):"]
+    all_dims = [d.name for d in model.dimensions]
+    lines = ["MEASURES (name - label [format]: definition | synonyms | limits):"]
     for m in model.measures:
+        valid = set(model.valid_dimensions(m.name))
+        missing = [d for d in all_dims if d not in valid]
+        limit = f" | NOT by: {', '.join(missing)}" if missing else ""
         lines.append(
-            f"- {m.name} — {m.label} [{m.format}]: {' '.join(m.description.split())} "
-            f"Synonyms: {', '.join(m.synonyms)}. "
-            f"Can be split/filtered by: {', '.join(model.valid_dimensions(m.name))}."
+            f"- {m.name} - {m.label} [{m.format}]: {' '.join(m.description.split())}"
+            f" | {', '.join(m.synonyms[:MAX_SYNONYMS])}{limit}"
         )
     lines.append("")
-    lines.append("DIMENSIONS (use the name in the plan):")
+    lines.append("DIMENSIONS (name - label: description | synonyms | values):")
     for d in model.dimensions:
-        line = f"- {d.name} — {d.label}: {' '.join(d.description.split())} "
-        line += f"Synonyms: {', '.join(d.synonyms)}."
+        line = f"- {d.name} - {d.label}: {' '.join(d.description.split())}"
+        line += f" | {', '.join(d.synonyms[:MAX_SYNONYMS])}"
         if d.type == "time":
-            line += f" Grains: {', '.join(d.grains)} (default {d.default_grain})."
+            line += f" | grains {', '.join(d.grains)} (default {d.default_grain})"
         values = catalog.values(d.name)
+        if d.matching == "exact" and d.value_type == "text":
+            values = []  # anonymised IDs: samples would only waste tokens
         if values and len(values) <= MAX_LISTED_VALUES:
-            line += " Values: " + "; ".join(v.display for v in values) + "."
+            line += " | " + "; ".join(v.display for v in values)
         elif values:
-            sample = ", ".join(v.display for v in values[:12])
-            line += (
-                f" {len(values)} values (e.g. {sample}). Copy the value as the user "
-                "wrote it; the system matches it."
-            )
+            sample = ", ".join(v.display for v in values[:VALUE_SAMPLE])
+            line += f" | {len(values)} values, e.g. {sample} (copy user wording)"
         lines.append(line)
     lines.append("")
-    lines.append("CONCEPTS NOT IN THE DATA (refuse with can_answer=false and this reason):")
-    for u in model.unsupported_concepts:
-        lines.append(f"- {u.name}: {u.reason}")
+    names = ", ".join(u.name.replace("_", " ") for u in model.unsupported_concepts)
+    lines.append(f"NOT IN THE DATA (can_answer=false): {names}.")
     return "\n".join(lines)
 
 
@@ -246,7 +250,7 @@ TODAY: {today.isoformat()} (the real current date).
 
 RULES
 1. Use only measure and dimension names listed above. Never use table or column names.
-2. If the question needs data that does not exist (see CONCEPTS NOT IN THE DATA, or anything \
+2. If the question needs data that does not exist (see NOT IN THE DATA, or anything \
 else not described above, e.g. weather or competitors), set can_answer=false and give a short \
 reason. Do not approximate with another measure.
 3. Filters: copy values exactly as the user wrote them (e.g. "São Paulo", "SP", "health and \
