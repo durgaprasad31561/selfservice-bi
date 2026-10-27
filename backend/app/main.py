@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.nl2sql.llm import llm_status
 from app.routers import health, metadata
 from app.semantic.loader import get_model
 from app.semantic.state import load_catalog
@@ -26,6 +27,11 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         load_catalog()
     except Exception as exc:  # noqa: BLE001 - DB may come up later; catalog loads lazily
         log.error("database not reachable at startup, catalog will load on first use: %s", exc)
+    llm = llm_status()
+    if llm["ok"]:
+        log.info("LLM provider %s, models %s", llm["provider"], llm["models"])
+    else:
+        log.error("LLM NOT CONFIGURED — questions cannot be answered: %s", llm["detail"])
     yield
 
 
