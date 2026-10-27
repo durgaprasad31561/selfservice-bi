@@ -15,6 +15,7 @@ import logging
 import re
 import threading
 import time
+import warnings
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -27,6 +28,10 @@ from pydantic import BaseModel
 from app.config import PROJECT_ROOT, Settings, get_settings
 
 log = logging.getLogger("app.llm")
+
+# Some Gemini models ignore temperature; LangChain warns on every call. The setting is
+# still sent (temperature 0) for models that honour it.
+warnings.filterwarnings("ignore", message=r".*uses fixed sampling defaults.*")
 
 LOG_FILE = PROJECT_ROOT / "logs" / "llm_calls.jsonl"
 COOL_DOWN_SECONDS = 60.0
