@@ -36,8 +36,23 @@ def history(
         .limit(limit)
         .offset(offset)
     )
+    rows = list(items)
+    emails = (
+        dict(
+            db.execute(
+                select(User.id, User.email).where(User.id.in_({r.user_id for r in rows}))
+            ).all()
+        )
+        if rows
+        else {}
+    )
+    out = []
+    for r in rows:
+        item = HistoryItem.model_validate(r)
+        item.user_email = emails.get(r.user_id)
+        out.append(item)
     return HistoryPage(
-        items=[HistoryItem.model_validate(i) for i in items],
+        items=out,
         total=total,
         limit=limit,
         offset=offset,

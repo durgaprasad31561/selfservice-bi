@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom/vitest";
+import { api } from "../api/client";
 
 // jsdom lacks ResizeObserver (used by Recharts' ResponsiveContainer) and matchMedia.
 class ResizeObserverStub {
@@ -17,3 +18,7 @@ window.matchMedia ??= ((query: string) => ({
   removeEventListener() {},
   dispatchEvent: () => false,
 })) as unknown as typeof window.matchMedia;
+
+// No real network in unit tests: anything a test does not mock fails fast and quietly
+// (otherwise jsdom logs connection errors for components that fetch metadata).
+api.defaults.adapter = () => Promise.reject(new Error("network disabled in unit tests"));

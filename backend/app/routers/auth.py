@@ -18,7 +18,7 @@ from app.auth.security import (
 from app.config import get_settings
 from app.db import get_app_session
 from app.models import Role, User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserOut
+from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserOut, UserUpdate
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -108,3 +108,32 @@ def me(user: User = Depends(get_current_user)) -> User:
 @router.get("/users", response_model=list[UserOut], summary="All users (admin only)")
 def list_users(_: User = Depends(admin_only), db: Session = Depends(get_app_session)) -> list[User]:
     return list(db.scalars(select(User).order_by(User.id)))
+
+
+@router.patch(
+    "/users/{user_id}",
+    response_model=UserOut,
+    summary="Change a user's role, name or active status (admin only)",
+)
+def update_user(
+    user_id: int,
+    body: UserUpdate,
+    admin: User = Depends(admin_only),
+    db: Session = Depends(get_app_session),
+) -> User:
+    user = db.get(User, user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found.")
+    new_role = Role(body.role) if body.role is not None else user.role
+    new_active = body.is_active if body.is_active is not None else user.is_active
+    if user.id == admin.id and (new_role != Role.admin or not new_active):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "You cannot remove your own admin role or deactivate yourself.",
+        )
+    user.role, user.is_active = new_role, new_active
+    if body.full_name is not None:
+        user.full_name = body.full_name.strip()
+    db.commit()
+    db.refresh(user)
+    return user

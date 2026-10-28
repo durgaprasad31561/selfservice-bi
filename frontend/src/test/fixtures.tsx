@@ -8,7 +8,10 @@ export function Providers({ children, route = "/" }: { children: ReactNode; rout
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return (
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[route]}>
+      <MemoryRouter
+        initialEntries={[route]}
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+      >
         <AuthProvider>{children}</AuthProvider>
       </MemoryRouter>
     </QueryClientProvider>

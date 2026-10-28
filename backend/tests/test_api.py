@@ -398,3 +398,86 @@ def test_unknown_route_json(client: TestClient) -> None:
     r = client.get("/api/does-not-exist")
     assert r.status_code == 404 and r.json()["error"] == "http_error"
     assert r.headers.get("x-request-id")
+
+
+# ------------------------------------------------------------------- admin
+
+
+def _user_id(client: TestClient, headers: dict[str, str]) -> int:
+    return client.get("/api/auth/me", headers=headers).json()["id"]
+
+
+def test_admin_changes_role_and_deactivates(client: TestClient, admin: dict[str, str]) -> None:
+    email, password = new_email("managed"), "Passw0rd!x"
+    created = client.post(
+        "/api/auth/register",
+        headers=admin,
+        json={"email": email, "password": password, "role": "viewer"},
+    ).json()
+    user = login(client, email, password)
+    assert client.post("/api/dashboards", json={"name": "x"}, headers=user).status_code == 403
+
+    r = client.patch(f"/api/auth/users/{created['id']}", json={"role": "analyst"}, headers=admin)
+    assert r.status_code == 200 and r.json()["role"] == "analyst"
+    # the role is read from the database on every request, so it applies immediately
+    assert client.post("/api/dashboards", json={"name": "Mine"}, headers=user).status_code == 201
+
+    r = client.patch(f"/api/auth/users/{created['id']}", json={"is_active": False}, headers=admin)
+    assert r.json()["is_active"] is False
+    assert (
+        client.get("/api/auth/me", headers=user).status_code == 401
+    )  # existing token stops working
+    bad = client.post("/api/auth/login", json={"email": email, "password": password})
+    assert bad.status_code == 401
+
+
+def test_user_admin_endpoints_are_admin_only(client: TestClient, admin: dict[str, str]) -> None:
+    analyst = make_user(client, admin, "analyst")
+    target = _user_id(client, analyst)
+    assert (
+        client.patch(
+            f"/api/auth/users/{target}", json={"role": "admin"}, headers=analyst
+        ).status_code
+        == 403
+    )
+    assert (
+        client.patch("/api/auth/users/999999", json={"role": "viewer"}, headers=admin).status_code
+        == 404
+    )
+    assert (
+        client.patch(f"/api/auth/users/{target}", json={"role": "boss"}, headers=admin).status_code
+        == 422
+    )
+
+
+def test_admin_cannot_lock_themselves_out(client: TestClient, admin: dict[str, str]) -> None:
+    me = _user_id(client, admin)
+    for body in ({"role": "viewer"}, {"is_active": False}):
+        r = client.patch(f"/api/auth/users/{me}", json=body, headers=admin)
+        assert r.status_code == 400 and "yourself" in r.json()["detail"]
+
+
+def test_admin_can_demote_another_admin(client: TestClient, admin: dict[str, str]) -> None:
+    email, password = new_email("admin2"), "Passw0rd!x"
+    second = client.post(
+        "/api/auth/register",
+        headers=admin,
+        json={"email": email, "password": password, "role": "admin"},
+    ).json()
+    second_headers = login(client, email, password)
+    assert client.get("/api/auth/users", headers=second_headers).status_code == 200
+    r = client.patch(f"/api/auth/users/{second['id']}", json={"role": "viewer"}, headers=admin)
+    assert r.status_code == 200 and r.json()["role"] == "viewer"
+    assert client.get("/api/auth/users", headers=second_headers).status_code == 403
+
+
+@pytest.mark.integration
+def test_history_shows_user_email_for_admins(client: TestClient, admin: dict[str, str]) -> None:
+    user = make_user(client, admin, "viewer")
+    client.post("/api/query", json={"question": "What is our profit?"}, headers=user)
+    items = client.get(
+        "/api/history", params={"all_users": True, "limit": 200}, headers=admin
+    ).json()["items"]
+    me = client.get("/api/auth/me", headers=user).json()
+    mine = [i for i in items if i["user_id"] == me["id"]]
+    assert mine and mine[0]["user_email"] == me["email"]

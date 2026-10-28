@@ -20,8 +20,12 @@ export const useDashboards = () =>
 export const useDashboard = (id: number) =>
   useQuery({ queryKey: ["dashboard", id], queryFn: () => dashboardApi.get(id), enabled: id > 0 });
 
-export const useHistory = (params: { limit: number; offset: number; status?: string }) =>
-  useQuery({ queryKey: ["history", params], queryFn: () => historyApi.list(params) });
+export const useHistory = (params: {
+  limit: number;
+  offset: number;
+  status?: string;
+  all_users?: boolean;
+}) => useQuery({ queryKey: ["history", params], queryFn: () => historyApi.list(params) });
 
 export function useCreateDashboard() {
   const qc = useQueryClient();

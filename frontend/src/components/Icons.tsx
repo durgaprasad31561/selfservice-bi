@@ -157,3 +157,10 @@ export const IconShield = (p: P) => (
     <path d="m9 12 2 2 4-4" />
   </Svg>
 );
+export const IconUsers = (p: P) => (
+  <Svg {...p}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+    <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14a6.5 6.5 0 0 1 3.5 6" />
+  </Svg>
+);

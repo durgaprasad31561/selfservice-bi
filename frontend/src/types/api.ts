@@ -179,6 +179,7 @@ export interface HistoryItem {
   execution_ms: number;
   llm_model: string | null;
   created_at: string;
+  user_email?: string | null;
 }
 
 export interface HistoryPage {

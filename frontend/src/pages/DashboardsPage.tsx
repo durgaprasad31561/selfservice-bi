@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { errorMessage } from "../api/client";
-import { IconGrid, IconPlus } from "../components/Icons";
+import { IconGrid, IconInfo, IconPlus } from "../components/Icons";
 import { EmptyState, ErrorNote, PageHeader, Spinner } from "../components/ui";
 import { useCreateDashboard, useDashboards } from "../hooks/queries";
 import { useAuth } from "../hooks/useAuth";
@@ -35,9 +35,25 @@ export function DashboardsPage() {
   return (
     <div>
       <PageHeader
-        title="My Dashboards"
-        subtitle="Pin answers from the Ask page. Widgets re-run every time a dashboard opens, so figures are always current."
+        title={canEditDashboards ? "My Dashboards" : "Dashboards"}
+        subtitle={
+          canEditDashboards
+            ? "Pin answers from the Ask page. Widgets re-run every time a dashboard opens, so figures are always current."
+            : "Dashboards shared by analysts. Widgets re-run every time a dashboard opens, so figures are always current."
+        }
       />
+      {!canEditDashboards && (
+        <div className="mb-6 flex gap-3 rounded-lg bg-info-soft p-4 text-sm" role="note">
+          <span className="text-ink-2">
+            <IconInfo />
+          </span>
+          <p>
+            You have <strong>viewer</strong> access: you can open every dashboard and ask questions,
+            but creating dashboards and pinning answers needs an analyst account. Ask an admin if
+            you need it.
+          </p>
+        </div>
+      )}
       {canEditDashboards && (
         <form onSubmit={submit} className="card mb-6 flex flex-wrap items-end gap-3 p-4">
           <div className="min-w-[16rem] flex-1">

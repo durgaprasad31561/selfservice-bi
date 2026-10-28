@@ -21,6 +21,7 @@ Authorization: Bearer <access_token>
 | POST | `/api/auth/token` | public | Log in (OAuth2 form), used by `/docs` |
 | GET | `/api/auth/me` | any role | The logged-in user |
 | GET | `/api/auth/users` | admin | All users |
+| PATCH | `/api/auth/users/{id}` | admin | Change a user's role, name or active status |
 | POST | `/api/query` | any role | **Answer a question** (full pipeline), recorded in history, rate limited |
 | POST | `/api/query/plan` | any role | Run a semantic plan directly, no LLM |
 | GET | `/api/metadata` | any role | Measures, dimensions, allowed values, data coverage, unsupported concepts |
@@ -35,7 +36,7 @@ Authorization: Bearer <access_token>
 | POST | `/api/dashboards/{id}/widgets` | owner analyst, admin | Pin a result |
 | PATCH | `/api/dashboards/{id}/widgets/{wid}` | owner analyst, admin | Rename, change chart type or position |
 | DELETE | `/api/dashboards/{id}/widgets/{wid}` | owner analyst, admin | Remove a widget |
-| GET | `/api/history` | any role | Your questions (`limit`, `offset`, `status`; admins `all_users=true`) |
+| GET | `/api/history` | any role | Your questions (`limit`, `offset`, `status`); admins can pass `all_users=true` (each item then shows `user_email`) |
 | DELETE | `/api/history/{id}` | owner, admin | Delete a history entry |
 
 Roles: **viewer** asks questions and views dashboards; **analyst** also creates and edits
@@ -63,6 +64,18 @@ Content-Type: application/json
 
 Tokens expire after `JWT_EXPIRE_MINUTES` (default 480). A missing, invalid or expired token
 returns `401`.
+
+## User administration (admin)
+
+```http
+POST /api/auth/register          (with an admin token, any role can be created)
+{"email": "maria@company.com", "password": "Str0ngPass!", "full_name": "Maria", "role": "analyst"}
+
+PATCH /api/auth/users/5
+{"role": "viewer"}               # or {"is_active": false} / {"full_name": "..."}
+```
+
+Roles are read from the database on every request, so a change applies to the user's next request. A deactivated user's existing token stops working immediately and they cannot log in. An admin cannot remove their own admin role or deactivate themselves (`400`), which also guarantees that at least one active admin always remains.
 
 ## POST /api/query
 

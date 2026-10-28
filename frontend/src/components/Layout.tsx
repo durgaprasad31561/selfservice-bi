@@ -11,16 +11,31 @@ import {
   IconMoon,
   IconShield,
   IconSun,
+  IconUsers,
 } from "./Icons";
 import { RoleBadge, Spinner } from "./ui";
 
-const NAV = [
+type NavItem = { to: string; label: string; icon: typeof IconHome; end?: boolean };
+
+const NAV: NavItem[] = [
   { to: "/", label: "Overview", icon: IconHome, end: true },
   { to: "/ask", label: "Ask", icon: IconAsk },
   { to: "/dashboards", label: "My Dashboards", icon: IconGrid },
   { to: "/catalog", label: "Data Catalog", icon: IconBook },
   { to: "/history", label: "History", icon: IconClock },
 ];
+
+const ADMIN_NAV: NavItem = { to: "/admin", label: "Admin", icon: IconUsers };
+
+/** Navigation for a role: admins also get the Admin page. */
+export function navItemsFor(role: string | undefined): NavItem[] {
+  if (role === "admin") return [...NAV, ADMIN_NAV];
+  // viewers cannot own dashboards, so "My" would be misleading
+  if (role === "viewer") {
+    return NAV.map((n) => (n.to === "/dashboards" ? { ...n, label: "Dashboards" } : n));
+  }
+  return NAV;
+}
 
 export function ThemeToggle() {
   const { theme, toggle } = useTheme();
@@ -66,7 +81,7 @@ function Layout() {
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:pb-0" aria-label="Main">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {navItemsFor(user?.role).map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

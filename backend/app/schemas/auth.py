@@ -48,3 +48,11 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserOut
+
+
+class UserUpdate(BaseModel):
+    """Admin changes to a user; omitted fields are left unchanged."""
+
+    role: Literal["admin", "analyst", "viewer"] | None = None
+    is_active: bool | None = None
+    full_name: str | None = Field(None, max_length=120)

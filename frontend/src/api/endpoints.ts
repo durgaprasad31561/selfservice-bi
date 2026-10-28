@@ -7,6 +7,7 @@ import type {
   Metadata,
   OverviewWidget,
   QueryResponse,
+  Role,
   Suggestion,
   TokenResponse,
   User,
@@ -57,7 +58,15 @@ export const dashboardApi = {
 };
 
 export const historyApi = {
-  list: (params: { limit?: number; offset?: number; status?: string } = {}) =>
+  list: (params: { limit?: number; offset?: number; status?: string; all_users?: boolean } = {}) =>
     api.get<HistoryPage>("/api/history", { params }).then((r) => r.data),
   remove: (id: number) => api.delete(`/api/history/${id}`),
+};
+
+export const adminApi = {
+  users: () => api.get<User[]>("/api/auth/users").then((r) => r.data),
+  createUser: (body: { email: string; password: string; full_name: string; role: Role }) =>
+    api.post<User>("/api/auth/register", body).then((r) => r.data),
+  updateUser: (id: number, body: { role?: Role; is_active?: boolean; full_name?: string }) =>
+    api.patch<User>(`/api/auth/users/${id}`, body).then((r) => r.data),
 };

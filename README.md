@@ -37,7 +37,7 @@ Data: the [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/o
 |---|---|
 | ![Answer with chart, SQL and explanation](docs/screenshots/ask-live.png) | ![Refusal](docs/screenshots/ask.png) |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Data catalog](docs/screenshots/catalog.png) |
-| ![Dark mode](docs/screenshots/overview-dark.png) | ![Login](docs/screenshots/login.png) |
+| ![Dark mode](docs/screenshots/overview-dark.png) | ![Admin page](docs/screenshots/admin.png) |
 
 ## Architecture
 
@@ -152,9 +152,9 @@ Seeded from `.env` on first start (change them there):
 
 | Role | Email | Password | Can |
 |---|---|---|---|
-| Admin | `admin@demo.com` | `Admin@123` | everything, incl. creating analyst/admin users, all history |
-| Analyst | `analyst@demo.com` | `Analyst@123` | ask, build and edit own dashboards |
-| Viewer | `viewer@demo.com` | `Viewer@123` | ask, view dashboards |
+| Admin | `admin@demo.com` | `Admin@123` | everything, plus the **Admin** page (create users, change roles, deactivate accounts) and all users' history |
+| Analyst | `analyst@demo.com` | `Analyst@123` | ask, pin answers, build and edit own dashboards (**My Dashboards**) |
+| Viewer | `viewer@demo.com` | `Viewer@123` | ask, export CSV, view dashboards shared by analysts (no pinning or editing) |
 
 ## Example questions
 
@@ -175,7 +175,7 @@ Seeded from `.env` on first start (change them there):
 ## Tests and evaluation
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\test.ps1   # pytest (336) + Vitest (20)
+powershell -ExecutionPolicy Bypass -File scripts\test.ps1   # pytest (341) + Vitest (24)
 powershell -ExecutionPolicy Bypass -File scripts\eval.ps1   # 85 questions -> docs\evaluation_report.md
 ```
 

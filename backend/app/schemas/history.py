@@ -26,6 +26,7 @@ class HistoryItem(BaseModel):
     execution_ms: int
     llm_model: str | None
     created_at: datetime
+    user_email: str | None = None  # filled for admins viewing all users
 
 
 class HistoryPage(BaseModel):

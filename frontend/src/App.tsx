@@ -1,6 +1,7 @@
 import { Link, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "./components/Layout";
 import { EmptyState } from "./components/ui";
+import { AdminPage } from "./pages/AdminPage";
 import { AskPage } from "./pages/AskPage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { DashboardDetailPage } from "./pages/DashboardDetailPage";
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="dashboards/:id" element={<DashboardDetailPage />} />
         <Route path="catalog" element={<CatalogPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="admin" element={<AdminPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
