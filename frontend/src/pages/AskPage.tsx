@@ -6,6 +6,14 @@ import { ResultCard } from "../components/ResultCard";
 import { ErrorNote, PageHeader } from "../components/ui";
 import { useMetadata, useSuggestions } from "../hooks/queries";
 import { useAskSession } from "../hooks/useAskSession";
+import type { Suggestion } from "../types/api";
+import { IconSparkles } from "../components/Icons";
+
+function groupSuggestions(list: Suggestion[]): [string, Suggestion[]][] {
+  const groups = new Map<string, Suggestion[]>();
+  for (const s of list) groups.set(s.category, [...(groups.get(s.category) ?? []), s]);
+  return [...groups.entries()];
+}
 
 export function AskPage() {
   const metadata = useMetadata();
@@ -36,6 +44,8 @@ export function AskPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Natural-language analytics"
+        icon={<IconSparkles size={22} />}
         title="Ask a question"
         subtitle={
           coverage
@@ -60,20 +70,31 @@ export function AskPage() {
       />
 
       {suggestions.data && entries.length === 0 && (
-        <section className="mt-6">
-          <h2 className="label">Try one of these</h2>
-          <div className="flex flex-wrap gap-2">
-            {suggestions.data.map((s) => (
-              <button
-                key={s.question}
-                type="button"
-                disabled={busy}
-                onClick={() => run(s.question)}
-                className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-2 hover:border-accent hover:text-ink"
-                title={s.category}
-              >
-                {s.question}
-              </button>
+        <section className="mt-8 animate-fade-up" aria-label="Suggested questions">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="icon-tile h-7 w-7">
+              <IconSparkles size={15} />
+            </span>
+            <h2 className="text-sm font-semibold">Try one of these</h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {groupSuggestions(suggestions.data).map(([category, items]) => (
+              <div key={category} className="card p-4">
+                <p className="label">{category}</p>
+                <div className="flex flex-wrap gap-2">
+                  {items.map((s) => (
+                    <button
+                      key={s.question}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => run(s.question)}
+                      className="chip text-left"
+                    >
+                      {s.question}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </section>
@@ -82,8 +103,16 @@ export function AskPage() {
       <div className="mt-6 space-y-5">
         {entries.map((e) =>
           e.pending ? (
-            <div key={e.id} className="card space-y-3 p-5">
-              <p className="text-sm font-medium text-ink-2">{e.question}</p>
+            <div key={e.id} className="card space-y-4 p-5 animate-fade-up">
+              <div className="flex items-center gap-3">
+                <span className="icon-tile h-9 w-9">
+                  <IconSparkles size={18} />
+                </span>
+                <div>
+                  <p className="text-xs text-muted">Working on</p>
+                  <p className="font-medium">{e.question}</p>
+                </div>
+              </div>
               <PipelineProgress />
             </div>
           ) : e.response ? (

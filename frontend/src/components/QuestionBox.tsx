@@ -129,36 +129,38 @@ export function QuestionBox({ metadata, disabled, onSubmit, value, onChange }: P
       <label htmlFor="question" className="sr-only">
         Ask a question about the data
       </label>
-      <div className="card flex items-end gap-2 p-2 shadow-sm focus-within:border-accent">
-        <textarea
-          id="question"
-          ref={input}
-          rows={2}
-          value={value}
-          disabled={disabled}
-          maxLength={500}
-          placeholder="Ask a question, e.g. “Show total sales in São Paulo in 2018”"
-          onChange={(e) => {
-            onChange(e.target.value);
-            setOpen(true);
-            setIndex(0);
-          }}
-          onKeyDown={onKeyDown}
-          onBlur={() => setTimeout(() => setOpen(false), 120)}
-          role="combobox"
-          aria-expanded={items.length > 0}
-          aria-controls="question-suggestions"
-          aria-autocomplete="list"
-          className="min-h-[3.25rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-base text-ink placeholder:text-muted focus:outline-none"
-        />
-        <button
-          type="button"
-          className="btn-primary h-10"
-          onClick={submit}
-          disabled={disabled || !value.trim()}
-        >
-          Ask <IconSend size={16} />
-        </button>
+      <div className="glow-ring">
+        <div className="flex items-end gap-2 rounded-[1.2rem] bg-surface p-2.5">
+          <textarea
+            id="question"
+            ref={input}
+            rows={2}
+            value={value}
+            disabled={disabled}
+            maxLength={500}
+            placeholder="Ask a question, e.g. “Show total sales in São Paulo in 2018”"
+            onChange={(e) => {
+              onChange(e.target.value);
+              setOpen(true);
+              setIndex(0);
+            }}
+            onKeyDown={onKeyDown}
+            onBlur={() => setTimeout(() => setOpen(false), 120)}
+            role="combobox"
+            aria-expanded={items.length > 0}
+            aria-controls="question-suggestions"
+            aria-autocomplete="list"
+            className="min-h-[3.5rem] flex-1 resize-none bg-transparent px-3 py-2 text-base text-ink placeholder:text-muted focus:outline-none"
+          />
+          <button
+            type="button"
+            className="btn-primary h-11 px-5"
+            onClick={submit}
+            disabled={disabled || !value.trim()}
+          >
+            Ask <IconSend size={16} />
+          </button>
+        </div>
       </div>
       <p className="mt-1.5 px-1 text-xs text-muted">
         Enter to ask · Shift+Enter for a new line · Tab to complete
@@ -167,7 +169,7 @@ export function QuestionBox({ metadata, disabled, onSubmit, value, onChange }: P
         <ul
           id="question-suggestions"
           role="listbox"
-          className="absolute left-0 right-0 top-full z-20 -mt-5 overflow-hidden rounded-lg border border-line bg-surface shadow-lg"
+          className="absolute left-0 right-0 top-full z-20 -mt-4 overflow-hidden rounded-xl border border-line bg-surface p-1 shadow-lift"
         >
           {items.map((item, i) => (
             <li
@@ -178,7 +180,7 @@ export function QuestionBox({ metadata, disabled, onSubmit, value, onChange }: P
                 e.preventDefault();
                 accept(i);
               }}
-              className={`flex cursor-pointer items-center justify-between px-3 py-1.5 text-sm ${i === index ? "bg-surface-2" : ""}`}
+              className={`flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm ${i === index ? "bg-accent-soft text-ink" : ""}`}
             >
               <span>{item.term.text}</span>
               <span className="text-xs text-muted">{item.term.kind}</span>

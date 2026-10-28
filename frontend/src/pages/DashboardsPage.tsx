@@ -35,6 +35,8 @@ export function DashboardsPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Workspace"
+        icon={<IconGrid size={22} />}
         title={canEditDashboards ? "My Dashboards" : "Dashboards"}
         subtitle={
           canEditDashboards

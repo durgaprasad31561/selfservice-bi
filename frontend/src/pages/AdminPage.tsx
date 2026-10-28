@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMessage } from "../api/client";
 import { adminApi } from "../api/endpoints";
-import { IconPlus } from "../components/Icons";
+import { IconPlus, IconUsers } from "../components/Icons";
 import { EmptyState, ErrorNote, PageHeader, RoleBadge, Spinner } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import type { Role, User } from "../types/api";
@@ -205,6 +205,8 @@ export function AdminPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Administration"
+        icon={<IconUsers size={22} />}
         title="Admin"
         subtitle="Manage who can use the system and what they can do. Changes apply on the user's next request."
         actions={

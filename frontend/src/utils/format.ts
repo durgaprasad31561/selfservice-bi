@@ -47,12 +47,29 @@ export function formatValue(
 }
 
 /** Axis tick label (always compact, no unit words). */
+/** Short axis number: 350000 -> "350K", 1400000 -> "1.4M", 2500 -> "2.5K" (no trailing ".0"). */
+function compactTick(value: number): string {
+  const abs = Math.abs(value);
+  const units: [number, string][] = [
+    [1e9, "B"],
+    [1e6, "M"],
+    [1e3, "K"],
+  ];
+  for (const [size, suffix] of units) {
+    if (abs >= size) {
+      const n = value / size;
+      return `${Math.abs(n) >= 100 ? Math.round(n) : Number(n.toFixed(1))}${suffix}`;
+    }
+  }
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 export function formatTick(value: unknown, format: ValueFormat | null | undefined): string {
   if (typeof value !== "number") return String(value ?? "");
-  if (format === "currency") return `R$ ${abbreviate(value)}`;
+  if (format === "currency") return `R$ ${compactTick(value)}`;
   if (format === "percent") return `${nf(0).format(value)}%`;
   if (format === "rating" || format === "decimal" || format === "days") return nf(1).format(value);
-  return abbreviate(value);
+  return compactTick(value);
 }
 
 /** Label for a time value at a grain: month -> "Mar 2018", quarter -> "Q2 2017". */

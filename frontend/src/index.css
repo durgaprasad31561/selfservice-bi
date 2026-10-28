@@ -2,29 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens. Chart colours are the validated reference palette (fixed order,
-   separate light/dark steps). Status colours are reserved for state. */
+/* ---------------------------------------------------------------------------
+   Design tokens
+   UI chrome uses an indigo-violet brand; data marks keep the validated
+   categorical palette (--series-*), with separate light and dark steps.
+   --------------------------------------------------------------------------- */
 :root {
   color-scheme: light;
-  --page: #f6f6f3;
-  --surface-1: #fcfcfb;
-  --surface-2: #f1f0ec;
-  --text-primary: #0b0b0b;
-  --text-secondary: #52514e;
-  --text-muted: #6f6d68;
-  --border: rgba(11, 11, 11, 0.1);
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --accent: #2a78d6;
+  --page: #f4f6fb;
+  --surface-1: #ffffff;
+  --surface-2: #f3f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --grid: #e8ebf0;
+  --axis: #cbd5e1;
+
+  --accent: #4f46e5;
+  --accent-2: #7c3aed;
   --accent-ink: #ffffff;
-  --accent-soft: #e6f0fc;
-  --info-soft: #eef1f5;
-  --warn-soft: #fff6e0;
-  --warn-ink: #6b4700;
+  --accent-soft: #eef2ff;
+  --accent-text: #4338ca;
+  --accent-ring: rgba(79, 70, 229, 0.18);
+
+  --sidebar: #0f172a;
+  --sidebar-2: #1e293b;
+  --sidebar-ink: #e2e8f0;
+  --sidebar-muted: #8391a7;
+
+  --info-soft: #f1f5f9;
+  --good-soft: #ecfdf3;
+  --good-ink: #067647;
+  --warn-soft: #fffaeb;
+  --warn-ink: #93370d;
+  --critical-soft: #fef3f2;
+
   --status-good: #0ca30c;
   --status-warning: #fab219;
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
+
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 6px 18px -8px rgba(15, 23, 42, 0.1);
+  --shadow-lift: 0 2px 4px rgba(15, 23, 42, 0.05), 0 18px 40px -16px rgba(15, 23, 42, 0.22);
+  --shadow-glow: 0 0 0 1px rgba(79, 70, 229, 0.12), 0 12px 40px -12px rgba(79, 70, 229, 0.35);
+
   --series-1: #2a78d6;
   --series-2: #eb6834;
   --series-3: #1baf7a;
@@ -37,21 +60,40 @@
 
 :root.dark {
   color-scheme: dark;
-  --page: #0d0d0d;
-  --surface-1: #1a1a19;
-  --surface-2: #232321;
-  --text-primary: #f0efec;
-  --text-secondary: #c3c2b7;
-  --text-muted: #9a988f;
-  --border: rgba(255, 255, 255, 0.1);
-  --grid: #2c2c2a;
-  --axis: #383835;
-  --accent: #3987e5;
+  --page: #0a0e17;
+  --surface-1: #111827;
+  --surface-2: #182132;
+  --text-primary: #f1f5f9;
+  --text-secondary: #a8b3c4;
+  --text-muted: #7c889b;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --grid: #222c3d;
+  --axis: #3a465a;
+
+  --accent: #6366f1;
+  --accent-2: #8b5cf6;
   --accent-ink: #ffffff;
-  --accent-soft: #15253a;
-  --info-soft: #1f2328;
-  --warn-soft: #2e2510;
-  --warn-ink: #f3d491;
+  --accent-soft: #1e1b4b;
+  --accent-text: #a5b4fc;
+  --accent-ring: rgba(129, 140, 248, 0.28);
+
+  --sidebar: #070b13;
+  --sidebar-2: #131b2b;
+  --sidebar-ink: #e2e8f0;
+  --sidebar-muted: #7c889b;
+
+  --info-soft: #172033;
+  --good-soft: #0a2a1c;
+  --good-ink: #6ce9a6;
+  --warn-soft: #2b2110;
+  --warn-ink: #fdd68a;
+  --critical-soft: #2d1515;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.4), 0 22px 44px -18px rgba(0, 0, 0, 0.75);
+  --shadow-glow: 0 0 0 1px rgba(129, 140, 248, 0.25), 0 12px 40px -12px rgba(99, 102, 241, 0.45);
+
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
@@ -70,32 +112,126 @@ body,
 
 body {
   margin: 0;
-  background: var(--page);
+  background-color: var(--page);
+  background-image:
+    radial-gradient(1200px 520px at 85% -120px, rgba(124, 58, 237, 0.07), transparent 60%),
+    radial-gradient(900px 480px at 20% -160px, rgba(79, 70, 229, 0.08), transparent 60%);
+  background-repeat: no-repeat;
   color: var(--text-primary);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  font-feature-settings: "tnum" 1;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings:
+    "cv11",
+    "ss01",
+    "tnum" 1;
+}
+
+:root.dark body {
+  background-image:
+    radial-gradient(1200px 520px at 85% -120px, rgba(139, 92, 246, 0.12), transparent 60%),
+    radial-gradient(900px 480px at 20% -160px, rgba(99, 102, 241, 0.12), transparent 60%);
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+/* thin, quiet scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-line bg-surface;
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+  .card-interactive {
+    @apply card transition duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-lift;
   }
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition duration-150 focus:outline-none focus-visible:ring-4 focus-visible:ring-[color:var(--accent-ring)] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-accent text-accent-ink hover:brightness-110;
+    @apply btn bg-gradient-to-r from-accent to-accent-2 text-accent-ink shadow-sm hover:shadow-glow hover:brightness-110 active:brightness-95;
   }
   .btn-ghost {
-    @apply btn text-ink-2 hover:bg-surface-2 hover:text-ink;
+    @apply btn font-medium text-ink-2 hover:bg-surface-2 hover:text-ink;
   }
   .btn-outline {
-    @apply btn border border-line text-ink hover:bg-surface-2;
+    @apply btn border border-line bg-surface font-medium text-ink shadow-sm hover:border-line-strong hover:bg-surface-2;
   }
   .input {
-    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm transition placeholder:text-muted focus:border-accent focus:outline-none focus:ring-4 focus:ring-[color:var(--accent-ring)];
   }
   .label {
-    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted;
+  }
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent-text;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-ink-2 shadow-sm transition hover:-translate-y-px hover:border-accent hover:text-ink hover:shadow-card;
+  }
+  .icon-tile {
+    @apply inline-flex shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-text;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-accent-2 bg-clip-text text-transparent;
+  }
+  .segmented {
+    @apply inline-flex rounded-xl border border-line bg-surface-2 p-1 text-sm;
+  }
+  .segmented > button {
+    @apply rounded-lg px-3 py-1.5 font-medium text-muted transition hover:text-ink;
+  }
+  .segmented > button[aria-pressed="true"] {
+    @apply bg-surface text-ink shadow-card;
+  }
+}
+
+/* Branded hero backgrounds (used on the login panel and the overview banner) */
+.hero-gradient {
+  background:
+    radial-gradient(700px 300px at 90% -20%, rgba(255, 255, 255, 0.18), transparent 60%),
+    radial-gradient(500px 260px at 0% 120%, rgba(255, 255, 255, 0.12), transparent 60%),
+    linear-gradient(135deg, #4338ca 0%, #6d28d9 55%, #7c3aed 100%);
+}
+:root.dark .hero-gradient {
+  background:
+    radial-gradient(700px 300px at 90% -20%, rgba(255, 255, 255, 0.1), transparent 60%),
+    radial-gradient(500px 260px at 0% 120%, rgba(255, 255, 255, 0.06), transparent 60%),
+    linear-gradient(135deg, #312e81 0%, #4c1d95 60%, #5b21b6 100%);
+}
+.hero-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+/* Glowing border for the main question box */
+.glow-ring {
+  position: relative;
+  border-radius: 1.25rem;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(79, 70, 229, 0.55),
+    rgba(124, 58, 237, 0.35),
+    rgba(42, 120, 214, 0.45)
+  );
+  box-shadow: var(--shadow-glow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

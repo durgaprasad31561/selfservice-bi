@@ -166,7 +166,7 @@ function SingleLine({
   return (
     <div>
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={plotted} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
+        <LineChart data={plotted} margin={{ top: 8, right: 28, bottom: 4, left: 4 }}>
           <CartesianGrid vertical={false} stroke="var(--grid)" />
           <XAxis dataKey={xKey} {...AXIS} tickLine={false} minTickGap={24} />
           <YAxis
@@ -289,6 +289,8 @@ function SingleBar({
           {...AXIS}
           tickLine={false}
           axisLine={false}
+          tickCount={4}
+          interval="preserveStartEnd"
           tickFormatter={(v) => formatTick(v, measure.format)}
         />
         <YAxis
@@ -381,7 +383,7 @@ export function ChartView({
     return (
       <div>
         <ResponsiveContainer width="100%" height={height}>
-          <LineChart data={wide} margin={{ top: 8, right: 16, bottom: 4, left: 4 }}>
+          <LineChart data={wide} margin={{ top: 8, right: 28, bottom: 4, left: 4 }}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
             <XAxis dataKey={xKey} {...AXIS} tickLine={false} minTickGap={24} />
             <YAxis

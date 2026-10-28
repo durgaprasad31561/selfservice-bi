@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { errorMessage } from "../api/client";
 import { historyApi } from "../api/endpoints";
-import { IconTrash } from "../components/Icons";
+import { IconClock, IconTrash } from "../components/Icons";
 import { EmptyState, ErrorNote, PageHeader, Spinner, StatusBadge } from "../components/ui";
 import { useHistory } from "../hooks/queries";
 import { useAuth } from "../hooks/useAuth";
@@ -49,6 +49,8 @@ export function HistoryPage() {
   return (
     <div>
       <PageHeader
+        eyebrow="Activity"
+        icon={<IconClock size={22} />}
         title="History"
         subtitle={
           showAll

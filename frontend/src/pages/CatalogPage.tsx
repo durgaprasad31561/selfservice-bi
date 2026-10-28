@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { errorMessage } from "../api/client";
-import { IconCheck, IconInfo, IconWarning, IconX } from "../components/Icons";
+import { IconBook, IconCheck, IconInfo, IconWarning, IconX } from "../components/Icons";
 import { ErrorNote, PageHeader, Spinner } from "../components/ui";
 import { useMetadata } from "../hooks/queries";
 import type { CoverageMonth, Metadata } from "../types/api";
@@ -87,6 +87,8 @@ export function CatalogPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="Semantic layer"
+        icon={<IconBook size={22} />}
         title="Data Catalog"
         subtitle="The semantic layer: every business metric and dimension the system understands, with its exact definition."
         actions={

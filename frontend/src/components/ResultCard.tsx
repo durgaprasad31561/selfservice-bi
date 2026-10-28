@@ -6,6 +6,7 @@ import type { ChartType, QueryResponse } from "../types/api";
 import { downloadCsv, slugify } from "../utils/csv";
 import { ChartView } from "./ChartView";
 import {
+  IconSparkles,
   IconChart,
   IconCode,
   IconDownload,
@@ -173,8 +174,11 @@ export function ResultCard({ response: r, onAsk, showActions = true }: Props) {
 
   return (
     <article className="card overflow-hidden">
-      <header className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
-        <h2 className="mr-auto text-sm font-medium text-ink-2">{r.question}</h2>
+      <header className="flex flex-wrap items-center gap-3 border-b border-line bg-surface-2 px-5 py-3.5">
+        <span className="icon-tile h-8 w-8">
+          <IconSparkles size={16} />
+        </span>
+        <h2 className="mr-auto text-[15px] font-semibold">{r.question}</h2>
         <StatusBadge status={r.status} />
         {answered && <ConfidenceBadge confidence={r.confidence} />}
       </header>
@@ -227,7 +231,7 @@ export function ResultCard({ response: r, onAsk, showActions = true }: Props) {
 
         {answered && (
           <>
-            <p className="text-lg font-medium leading-snug">{r.answer_text}</p>
+            <p className="text-xl font-semibold leading-snug tracking-tight">{r.answer_text}</p>
             <WarningBanner warnings={r.warnings} />
             <div>
               {chartType !== "table" && chartType !== "kpi" && (
