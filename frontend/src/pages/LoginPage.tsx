@@ -1,10 +1,14 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { errorMessage } from "../api/client";
-import { IconDatabase, IconLock, IconShield, IconSparkles } from "../components/Icons";
+import { Aurora } from "../components/Aurora";
+import { IconDatabase, IconLock, IconShield, IconSparkles, IconTrend } from "../components/Icons";
 import { BrandMark, ThemeToggle } from "../components/Layout";
+import { WorkspacePreparation } from "../components/WorkspacePreparation";
 import { useAuth } from "../hooks/useAuth";
+import { useCountUp } from "../hooks/useCountUp";
+import type { User } from "../types/api";
 
 const DEMO = [
   { role: "Admin", email: "admin@demo.com", password: "Admin@123", hint: "Users & roles" },
@@ -21,20 +25,96 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   {
     icon: <IconDatabase size={18} />,
     title: "One semantic layer",
-    text: "Every number uses the same definitions: no double counting, ever.",
+    text: "Every number uses the same definitions - no double counting.",
   },
   {
     icon: <IconShield size={18} />,
     title: "Never guesses",
-    text: "Validated, read-only SQL - and an honest refusal when the data can't answer.",
+    text: "Validated, read-only SQL, and an honest refusal when the data can't answer.",
   },
 ];
 
-const STATS = [
-  { value: "99K", label: "orders" },
-  { value: "27", label: "states" },
-  { value: "100%", label: "safe refusals" },
-];
+function Stat({
+  value,
+  suffix,
+  label,
+  delay,
+}: {
+  value: number;
+  suffix: string;
+  label: string;
+  delay: number;
+}) {
+  const n = useCountUp(value, 1400, delay);
+  return (
+    <div className="glass p-4">
+      <div className="text-2xl font-bold tabular-nums">
+        {Math.round(n)}
+        {suffix}
+      </div>
+      <div className="text-xs text-white/60">{label}</div>
+    </div>
+  );
+}
+
+/** Decorative trend card: an abstract line that draws itself (no data values shown). */
+function TrendIllustration() {
+  return (
+    <div className="glass float-slow w-72 p-4 shadow-2xl">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs font-semibold text-white/80">
+          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-400/15 text-cyan-300">
+            <IconTrend size={14} />
+          </span>
+          Monthly trend
+        </div>
+        <span className="rounded-full bg-emerald-400/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+          validated
+        </span>
+      </div>
+      <svg viewBox="0 0 260 90" className="h-24 w-full" aria-hidden="true">
+        <defs>
+          <linearGradient id="trend-stroke" x1="0" x2="1">
+            <stop offset="0%" stopColor="#60a5fa" />
+            <stop offset="60%" stopColor="#22d3ee" />
+            <stop offset="100%" stopColor="#a78bfa" />
+          </linearGradient>
+          <linearGradient id="trend-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {[22, 45, 68].map((y) => (
+          <line key={y} x1="0" x2="260" y1={y} y2={y} stroke="rgba(255,255,255,0.08)" />
+        ))}
+        <path
+          d="M0 78 C 20 74, 30 70, 45 62 S 75 58, 90 50 S 120 46, 135 40 S 160 20, 175 14 S 200 24, 215 18 S 240 16, 260 20 L 260 90 L 0 90 Z"
+          fill="url(#trend-fill)"
+          className="animate-fade-up"
+          style={{ animationDelay: "1.2s" }}
+        />
+        <path
+          d="M0 78 C 20 74, 30 70, 45 62 S 75 58, 90 50 S 120 46, 135 40 S 160 20, 175 14 S 200 24, 215 18 S 240 16, 260 20"
+          fill="none"
+          stroke="url(#trend-stroke)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          className="draw-line"
+        />
+      </svg>
+      <div className="mt-1 flex gap-1.5">
+        {["SELECT", "validated", "read-only"].map((t) => (
+          <span
+            key={t}
+            className="rounded-md bg-white/[0.07] px-1.5 py-0.5 font-mono text-[10px] text-white/60"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function LoginPage() {
   const { user, login } = useAuth();
@@ -43,80 +123,90 @@ export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  // idle -> signing in -> preparing workspace (animation) -> app
+  const [phase, setPhase] = useState<"idle" | "signing" | "preparing">("idle");
+  const [signedIn, setSignedIn] = useState<User | null>(null);
   const from = (location.state as { from?: string } | null)?.from ?? "/";
+  const finish = useCallback(() => navigate(from, { replace: true }), [navigate, from]);
 
-  if (user) return <Navigate to={from} replace />;
+  if (user && phase === "idle") return <Navigate to={from} replace />;
+  if (phase === "preparing" && signedIn)
+    return <WorkspacePreparation user={signedIn} onDone={finish} />;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    setBusy(true);
+    setPhase("signing");
     setError(null);
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      const u = await login(email, password);
+      setSignedIn(u);
+      setPhase("preparing");
     } catch (err) {
       setError(errorMessage(err));
-    } finally {
-      setBusy(false);
+      setPhase("idle");
     }
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
+    <div className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       {/* Brand panel */}
-      <section className="hero-gradient relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between lg:p-12">
-        <div className="hero-grid pointer-events-none absolute inset-0" aria-hidden="true" />
-        <div className="relative flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
-            <BrandMark size={30} />
-          </span>
+      <Aurora className="hidden lg:flex lg:flex-col lg:justify-between lg:gap-8 lg:px-12 lg:py-10">
+        <div className="flex items-center gap-3 animate-fade-up">
+          <BrandMark size={42} />
           <div className="leading-tight">
             <div className="text-lg font-bold tracking-tight">Self-Service BI</div>
-            <div className="text-sm text-white/70">Semantic layer · Natural-language queries</div>
+            <div className="text-sm text-white/60">Semantic layer · Natural-language queries</div>
           </div>
         </div>
 
-        <div className="relative max-w-lg">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ring-1 ring-white/20">
-            <IconLock size={13} /> Read-only · Validated · Explainable
-          </p>
-          <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight xl:text-5xl">
-            Ask your data.
-            <br />
-            Get answers you can trust.
-          </h1>
-          <p className="mt-4 text-base text-white/80">
-            Business questions about Brazilian e-commerce, answered with the exact SQL, the business
-            definitions used, and every assumption made.
-          </p>
-          <ul className="mt-8 space-y-4">
-            {FEATURES.map((f) => (
-              <li key={f.title} className="flex gap-3">
-                <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
-                  {f.icon}
-                </span>
-                <div>
-                  <p className="font-semibold">{f.title}</p>
-                  <p className="text-sm text-white/75">{f.text}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="relative">
+          <div className="max-w-xl animate-fade-up" style={{ animationDelay: "120ms" }}>
+            <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
+              <IconLock size={13} /> Read-only · Validated · Explainable
+            </p>
+            <h1 className="text-4xl font-extrabold leading-[1.08] tracking-tight xl:text-5xl">
+              Ask your data.
+              <br />
+              <span className="text-aurora">Get answers you can trust.</span>
+            </h1>
+            <p className="mt-4 max-w-lg text-base leading-relaxed text-white/70">
+              Business questions about Brazilian e-commerce, answered with the exact SQL, the
+              business definitions used, and every assumption made.
+            </p>
+            <ul className="mt-7 grid gap-3">
+              {FEATURES.map((f, i) => (
+                <li
+                  key={f.title}
+                  className="flex items-start gap-3 animate-fade-up"
+                  style={{ animationDelay: `${300 + i * 120}ms` }}
+                >
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/30 to-cyan-400/20 text-cyan-200 ring-1 ring-white/15">
+                    {f.icon}
+                  </span>
+                  <div>
+                    <p className="font-semibold">{f.title}</p>
+                    <p className="text-sm text-white/65">{f.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
-        <div className="relative grid max-w-md grid-cols-3 gap-3">
-          {STATS.map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur"
-            >
-              <div className="text-2xl font-bold tabular-nums">{s.value}</div>
-              <div className="text-xs text-white/70">{s.label}</div>
-            </div>
-          ))}
+        <div className="flex items-end justify-between gap-6">
+          <div
+            className="grid w-full max-w-sm grid-cols-3 gap-3 animate-fade-up"
+            style={{ animationDelay: "600ms" }}
+          >
+            <Stat value={99} suffix="K" label="orders analysed" delay={500} />
+            <Stat value={27} suffix="" label="Brazilian states" delay={650} />
+            <Stat value={100} suffix="%" label="safe refusals" delay={800} />
+          </div>
+          <div className="hidden xl:block">
+            <TrendIllustration />
+          </div>
         </div>
-      </section>
+      </Aurora>
 
       {/* Form */}
       <section className="relative flex items-center justify-center px-5 py-12">
@@ -176,8 +266,12 @@ export function LoginPage() {
                 {error}
               </p>
             )}
-            <button type="submit" className="btn-primary w-full py-2.5 text-[15px]" disabled={busy}>
-              {busy ? "Signing in…" : "Sign in"}
+            <button
+              type="submit"
+              className="btn-primary w-full py-2.5 text-[15px]"
+              disabled={phase !== "idle"}
+            >
+              {phase === "signing" ? "Signing in…" : "Sign in"}
             </button>
           </form>
 

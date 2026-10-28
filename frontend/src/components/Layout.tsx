@@ -98,7 +98,17 @@ function Sidebar() {
   const sections = [...new Set(items.map((i) => i.section))];
   const coverage = meta.data?.coverage;
   return (
-    <aside className="bg-sidebar text-sidebar-ink lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+    <aside className="relative overflow-hidden bg-sidebar text-sidebar-ink lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col">
+      <span
+        className="pointer-events-none absolute -left-16 -top-24 h-64 w-64 rounded-full opacity-60 blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.45), transparent 70%)" }}
+        aria-hidden="true"
+      />
+      <span
+        className="pointer-events-none absolute -bottom-24 -right-20 h-56 w-56 rounded-full opacity-40 blur-3xl"
+        style={{ background: "radial-gradient(circle, rgba(6,182,212,0.4), transparent 70%)" }}
+        aria-hidden="true"
+      />
       <div className="flex items-center gap-3 px-5 py-5">
         <BrandMark />
         <div className="leading-tight">

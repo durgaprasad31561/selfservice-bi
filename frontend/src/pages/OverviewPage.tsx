@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { errorMessage } from "../api/client";
+import { Aurora } from "../components/Aurora";
 import { ChartView } from "../components/ChartView";
 import {
   IconCalendar,
@@ -22,7 +23,8 @@ import {
 import { ErrorNote, Skeleton } from "../components/ui";
 import { useIncompleteMonths, useMetadata, useOverview } from "../hooks/queries";
 import { useAuth } from "../hooks/useAuth";
-import type { OverviewWidget } from "../types/api";
+import { useCountUp } from "../hooks/useCountUp";
+import type { ColumnInfo, OverviewWidget } from "../types/api";
 import { formatValue } from "../utils/format";
 
 const KPI_ICON: Record<string, ReactNode> = {
@@ -75,18 +77,21 @@ function Hero() {
     if (q.trim()) ask(q.trim());
   };
   return (
-    <section className="hero-gradient relative overflow-hidden rounded-3xl p-6 text-white shadow-lift sm:p-8 animate-fade-up">
-      <div className="hero-grid pointer-events-none absolute inset-0" aria-hidden="true" />
+    <Aurora className="rounded-3xl p-6 shadow-lift sm:p-8 animate-fade-up">
       <div className="relative grid gap-6 lg:grid-cols-[1.3fr_1fr] lg:items-end">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] ring-1 ring-white/20">
+          <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-200">
             <IconSparkles size={13} /> Olist · Brazilian e-commerce
           </p>
           <h1 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
             {greeting()}
-            {name ? `, ${name}` : ""}
+            {name && (
+              <>
+                , <span className="text-aurora">{name}</span>
+              </>
+            )}
           </h1>
-          <p className="mt-2 max-w-xl text-white/80">
+          <p className="mt-2 max-w-xl text-white/70">
             Here is how the business performed. Every figure comes from the governed semantic layer
             - ask anything in plain English to go deeper.
           </p>
@@ -117,7 +122,7 @@ function Hero() {
                 key={s}
                 type="button"
                 onClick={() => ask(s)}
-                className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium ring-1 ring-white/20 transition hover:bg-white/20"
+                className="rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-medium text-white/85 transition hover:border-cyan-300/50 hover:bg-white/[0.12] hover:text-white"
               >
                 {s}
               </button>
@@ -135,10 +140,7 @@ function Hero() {
                 value: String(coverage.months.filter((m) => m.order_count > 0).length),
               },
             ].map((f) => (
-              <div
-                key={f.label}
-                className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur"
-              >
+              <div key={f.label} className="glass p-4 transition duration-300 hover:bg-white/[0.1]">
                 <div className="flex items-center gap-1.5 text-xs text-white/70">
                   <IconCalendar size={13} />
                   {f.label}
@@ -149,7 +151,34 @@ function Hero() {
           </div>
         )}
       </div>
-    </section>
+    </Aurora>
+  );
+}
+
+function KpiCard({ m, value, index }: { m: ColumnInfo; value: unknown; index: number }) {
+  const animated = useCountUp(value, 1200, 150 + index * 90);
+  return (
+    <div
+      className="card-interactive group relative overflow-hidden p-4 animate-fade-up"
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <span
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-accent/0 to-accent-2/0 opacity-0 blur-2xl transition duration-500 group-hover:opacity-100"
+        style={{ background: "radial-gradient(circle, rgba(6,182,212,0.25), transparent 70%)" }}
+        aria-hidden="true"
+      />
+      <span className="icon-tile h-9 w-9 transition duration-300 group-hover:scale-110">
+        {KPI_ICON[m.name] ?? <IconSparkles size={18} />}
+      </span>
+      <div className="mt-3 text-[13px] font-medium text-ink-2">{m.label}</div>
+      <div
+        className="mt-0.5 text-2xl font-bold tabular-nums tracking-tight"
+        title={formatValue(value, m.format)}
+      >
+        {formatValue(animated, m.format, { compact: true })}
+      </div>
+      <div className="mt-1 text-xs text-muted">{KPI_NOTE[m.name] ?? "All periods"}</div>
+    </div>
   );
 }
 
@@ -163,25 +192,7 @@ function KpiRow({ widget }: { widget: OverviewWidget }) {
       className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6"
     >
       {measures.map((m, i) => (
-        <div
-          key={m.name}
-          className="card-interactive p-4 animate-fade-up"
-          style={{ animationDelay: `${i * 40}ms` }}
-        >
-          <div className="flex items-center justify-between">
-            <span className="icon-tile h-9 w-9">
-              {KPI_ICON[m.name] ?? <IconSparkles size={18} />}
-            </span>
-          </div>
-          <div className="mt-3 text-[13px] font-medium text-ink-2">{m.label}</div>
-          <div
-            className="mt-0.5 text-2xl font-bold tabular-nums tracking-tight"
-            title={formatValue(row[m.name], m.format)}
-          >
-            {formatValue(row[m.name], m.format, { compact: true })}
-          </div>
-          <div className="mt-1 text-xs text-muted">{KPI_NOTE[m.name] ?? "All periods"}</div>
-        </div>
+        <KpiCard key={m.name} m={m} value={row[m.name]} index={i} />
       ))}
     </section>
   );

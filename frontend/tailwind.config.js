@@ -22,6 +22,7 @@ export default {
         grid: v("grid"),
         accent: v("accent"),
         "accent-2": v("accent-2"),
+        "accent-3": v("accent-3"),
         "accent-ink": v("accent-ink"),
         "accent-soft": v("accent-soft"),
         "accent-text": v("accent-text"),

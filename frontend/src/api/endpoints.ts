@@ -70,3 +70,14 @@ export const adminApi = {
   updateUser: (id: number, body: { role?: Role; is_active?: boolean; full_name?: string }) =>
     api.patch<User>(`/api/auth/users/${id}`, body).then((r) => r.data),
 };
+
+export interface Health {
+  status: "ok" | "degraded";
+  database: { reader: { ok: boolean; detail: string }; admin: { ok: boolean; detail: string } };
+  llm: { ok: boolean; provider: string; models: string[]; detail: string };
+  semantic_layer: { ok: boolean; measures: number; dimensions: number };
+}
+
+export const healthApi = {
+  get: () => api.get<Health>("/api/health").then((r) => r.data),
+};

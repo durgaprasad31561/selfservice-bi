@@ -31,13 +31,15 @@ Data: the [Olist Brazilian E-Commerce dataset](https://www.kaggle.com/datasets/o
   ([report](docs/evaluation_report.md)).
 - **React dashboard**: ask page with autocomplete, result cards (chart/table, SQL,
   "how this was calculated", pin, CSV export), overview KPIs, saved dashboards that re-run
-  on load, a data catalog and history; light and dark mode.
+  on load, a data catalog and history; light and dark mode; animated aurora design and a
+  "preparing your workspace" sequence after sign-in whose steps track the real data loading.
 
 | | |
 |---|---|
 | ![Answer with chart, SQL and explanation](docs/screenshots/ask-live.png) | ![Refusal](docs/screenshots/ask.png) |
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Data catalog](docs/screenshots/catalog.png) |
 | ![Dark mode](docs/screenshots/overview-dark.png) | ![Admin page](docs/screenshots/admin.png) |
+| ![Sign-in](docs/screenshots/login.png) | ![Preparing your workspace after sign-in](docs/screenshots/preparing.png) |
 
 ## Architecture
 
