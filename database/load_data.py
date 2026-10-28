@@ -533,8 +533,23 @@ def verify(conn: psycopg.Connection, tables: list[Table]) -> list[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data-dir", type=Path, default=ROOT / "data")
+    parser.add_argument(
+        "--database-url",
+        help="target database (overrides ADMIN_DATABASE_URL), e.g. a cloud Postgres URL",
+    )
+    parser.add_argument(
+        "--drop-raw",
+        action="store_true",
+        help="after a successful load, drop the raw tables (only analytics is needed at run "
+        "time; saves ~145 MB on free cloud plans)",
+    )
     args = parser.parse_args()
     data_dir: Path = args.data_dir.resolve()
+    dsn = (
+        args.database_url.replace("postgresql+psycopg://", "postgresql://", 1)
+        if args.database_url
+        else admin_dsn()
+    )
 
     started = time.perf_counter()
     print(f"Reading and cleaning CSVs from {data_dir}")
@@ -545,8 +560,8 @@ def main() -> None:
         tables.append(table)
         print(f"  {table.name:<22}{len(table.df):>10,} rows  ({time.perf_counter() - t0:.1f}s)")
 
-    print("\nConnecting as bi_admin and rebuilding the raw schema")
-    with psycopg.connect(admin_dsn()) as conn:
+    print("\nConnecting to the database and rebuilding the raw schema")
+    with psycopg.connect(dsn) as conn:
         run_sql_file(conn, DB_DIR / "01_raw_schema.sql")
         with conn.cursor() as cur:
             for table in tables:
@@ -561,6 +576,15 @@ def main() -> None:
         conn.commit()
 
         failures = verify(conn, tables)
+
+        if args.drop_raw and not failures:
+            names = ", ".join(f"raw.{t.name}" for t in tables) + ", raw.states"
+            conn.execute(f"DROP TABLE IF EXISTS {names} CASCADE")
+            conn.commit()
+            size = conn.execute(
+                "SELECT pg_size_pretty(pg_database_size(current_database()))"
+            ).fetchone()[0]
+            print(f"\nRaw tables dropped (analytics kept). Database size now: {size}")
 
     print(f"\nFinished in {time.perf_counter() - started:.1f}s")
     if failures:

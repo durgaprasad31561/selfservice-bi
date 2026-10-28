@@ -1,0 +1,51 @@
+# Render Blueprint for the FastAPI backend (free plan).
+# Render -> New -> Blueprint -> pick this repository. Values marked "sync: false" are
+# secrets you paste in the Render dashboard; they are never stored in git.
+services:
+  - type: web
+    name: selfservice-bi-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      # Database (Neon): from scripts/setup_cloud_db.py output
+      - key: ADMIN_DATABASE_URL
+        sync: false
+      - key: READER_DATABASE_URL
+        sync: false
+      # LLM (Groq free tier)
+      - key: LLM_PROVIDER
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
+      - key: GROQ_FALLBACK_MODELS
+        value: openai/gpt-oss-20b
+      # Auth
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: "480"
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_ANALYST_PASSWORD
+        sync: false
+      - key: DEMO_VIEWER_PASSWORD
+        sync: false
+      # Safety limits
+      - key: QUERY_TIMEOUT_MS
+        value: "5000"
+      - key: MAX_ROWS
+        value: "1000"
+      - key: QUERY_RATE_LIMIT
+        value: 30/minute
+      # Your Vercel URL, e.g. https://selfservice-bi.vercel.app (comma-separate several)
+      - key: CORS_ORIGINS
+        sync: false

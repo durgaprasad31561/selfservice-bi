@@ -61,7 +61,7 @@ flowchart LR
 
 Details: [docs/architecture.md](docs/architecture.md) ·
 [docs/semantic_layer.md](docs/semantic_layer.md) ·
-[docs/safeguards.md](docs/safeguards.md) · [docs/api.md](docs/api.md) ·
+[docs/safeguards.md](docs/safeguards.md) · [docs/api.md](docs/api.md) · [docs/deployment.md](docs/deployment.md) ·
 [database/README.md](database/README.md)
 
 ## Technology
@@ -147,6 +147,12 @@ powershell -ExecutionPolicy Bypass -File scripts\run_frontend.ps1   # http://loc
 ```
 
 Open http://localhost:5173 and sign in.
+
+## Free deployment
+
+The whole system can run for $0 on Neon (PostgreSQL), Render (FastAPI) and Vercel (React),
+with Groq for the LLM. Step-by-step guide: **[docs/deployment.md](docs/deployment.md)**
+(`render.yaml`, `frontend/vercel.json` and `scripts/setup_cloud_db.py` are included).
 
 ## Demo accounts
 
